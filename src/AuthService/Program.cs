@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-namespace AuthService
+namespace SovietManager.AuthService
 {
     public class Program
     {
@@ -15,6 +15,11 @@ namespace AuthService
             var jwtSecretKey = builder.Configuration["JWT_SECRET_KEY"];
             var jwtIssuer = builder.Configuration["JWT_ISSUER"];
             var jwtAudience = builder.Configuration["JWT_AUDIENCE"];
+
+            if (string.IsNullOrEmpty(jwtSecretKey) || string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
+            {
+                throw new ArgumentException("JWT configuration values cannot be null or empty.");
+            }
 
             builder.Services.AddAuthentication(options =>
             {
