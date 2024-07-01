@@ -89,3 +89,9 @@ This document outlines the branch naming convention for our project. It's design
   Example:  
   `infrastructure/update-server-setup`,  
   `infrastructure/optimize-network-config`.
+
+### New Service Branches
+- `service/`: For developing new services within the microservice architecture.  
+  Example:  
+  `service/user-auth`,  
+  `service/payment-processing`.
