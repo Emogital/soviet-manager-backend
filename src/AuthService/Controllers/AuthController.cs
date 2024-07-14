@@ -27,12 +27,12 @@ namespace SovietManager.AuthService.Controllers
         private string GenerateJwtToken(Guid userId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET_KEY"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET_KEY"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity([new Claim("user_id", userId.ToString())]),
+                Subject = new ClaimsIdentity([new Claim("sub", userId.ToString())]),
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = _configuration["JWT_ISSUER"],
                 Audience = _configuration["JWT_AUDIENCE"],

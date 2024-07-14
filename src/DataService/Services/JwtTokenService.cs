@@ -32,7 +32,7 @@ namespace DataService.Services
             {
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
                 var jwtToken = (JwtSecurityToken)validatedToken;
-                var userId = jwtToken.Claims.First(x => x.Type == "userId").Value;
+                var userId = jwtToken.Claims.First(x => x.Type == "sub").Value;
                 return userId;
             }
             catch
