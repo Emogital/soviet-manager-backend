@@ -15,11 +15,15 @@ namespace DataService
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
             services.AddDbContext<DataContext>(options => options.UseInMemoryDatabase("InMemoryDb"));
+
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
             services.AddScoped<ILobbySettingsService, LobbySettingsService>();
             services.AddScoped<ILobbySettingsRepository, LobbySettingsRepository>();
             services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>
                     {

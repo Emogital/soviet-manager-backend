@@ -28,17 +28,10 @@ namespace DataService.Services
                 ClockSkew = TimeSpan.Zero
             };
 
-            try
-            {
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
-                var jwtToken = (JwtSecurityToken)validatedToken;
-                var userId = jwtToken.Claims.First(x => x.Type == "sub").Value;
-                return userId;
-            }
-            catch
-            {
-                throw new UnauthorizedAccessException("Invalid token");
-            }
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            var jwtToken = (JwtSecurityToken)validatedToken;
+            var userId = jwtToken.Claims.First(x => x.Type == "sub").Value;
+            return userId;
         }
     }
 }
