@@ -3,6 +3,7 @@ using DataService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 
 namespace DataService.Controllers
 {
@@ -13,7 +14,7 @@ namespace DataService.Controllers
         private readonly ILobbySettingsService _lobbySettingsService = lobbySettingsService;
         private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
-        [HttpGet]
+        [HttpGet("get")]
         [Authorize]
         public async Task<IActionResult> GetLobbySettings()
         {
@@ -28,6 +29,10 @@ namespace DataService.Controllers
             {
                 return BadRequest("Authorization header is missing or empty.");
             }
+            catch (SecurityTokenExpiredException)
+            {
+                return StatusCode((int)HttpStatusCode.Unauthorized, "Token has expired.");
+            }
             catch (SecurityTokenException)
             {
                 return Unauthorized("Invalid or expired token.");
@@ -38,7 +43,7 @@ namespace DataService.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("update")]
         [Authorize]
         public async Task<IActionResult> UpdateLobbySettings([FromBody] LobbySettingsDto lobbySettingsDto)
         {
@@ -52,6 +57,10 @@ namespace DataService.Controllers
             catch (ArgumentNullException)
             {
                 return BadRequest("Authorization header is missing or empty.");
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return StatusCode((int)HttpStatusCode.Unauthorized, "Token has expired.");
             }
             catch (SecurityTokenException)
             {

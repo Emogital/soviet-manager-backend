@@ -7,7 +7,7 @@ using System.Text;
 namespace SovietManager.AuthService.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class AuthController(IConfiguration configuration) : ControllerBase
     {
         private readonly IConfiguration _configuration = configuration;
