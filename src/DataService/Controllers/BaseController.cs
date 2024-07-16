@@ -14,6 +14,12 @@ namespace DataService.Controllers
             try
             {
                 var userId = ExtractAndValidateToken();
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest("User id is missing or empty.");
+                }
+
                 return await action(userId);
             }
             catch (ArgumentNullException)

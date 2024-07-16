@@ -13,18 +13,18 @@ namespace SovietManager.AuthService.Controllers
         private readonly IConfiguration _configuration = configuration;
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] Guid userId)
+        public IActionResult Login([FromBody] string userId)
         {
-            if (userId != Guid.Empty)
+            if (string.IsNullOrEmpty(userId))
             {
-                var tokenString = GenerateJwtToken(userId);
-                return Ok(new { Token = tokenString });
+                return Unauthorized();
             }
 
-            return Unauthorized();
+            var tokenString = GenerateJwtToken(TrimToMaxLength(userId, 36));
+            return Ok(new { Token = tokenString });
         }
 
-        private string GenerateJwtToken(Guid userId)
+        private string GenerateJwtToken(string userId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET_KEY"]!));
@@ -41,6 +41,11 @@ namespace SovietManager.AuthService.Controllers
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        private static string TrimToMaxLength(string input, int maxLength)
+        {
+            return input.Length <= maxLength ? input : input.Substring(0, maxLength);
         }
     }
 }
