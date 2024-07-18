@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using SovietManager.AuthService.Services;
 using System.Text;
 
 namespace SovietManager.AuthService
@@ -38,6 +39,8 @@ namespace SovietManager.AuthService
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
                 };
             });
+
+            builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
             var app = builder.Build();
 

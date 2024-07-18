@@ -16,5 +16,7 @@ namespace DataService.Models
 
         [MaxLength(16)]
         public string PlayerNick { get; set; } = string.Empty;
+
+        public int PlayerRating { get; set; } = 1000;
     }
 }

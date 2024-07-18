@@ -1,46 +1,29 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using SovietManager.AuthService.Services;
 
 namespace SovietManager.AuthService.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController(IConfiguration configuration) : ControllerBase
+    public class AuthController(IJwtTokenService jwtTokenService) : ControllerBase
     {
-        private readonly IConfiguration _configuration = configuration;
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] Guid userId)
+        public IActionResult Login([FromBody] string userId)
         {
-            if (userId != Guid.Empty)
+            if (string.IsNullOrEmpty(userId))
             {
-                var tokenString = GenerateJwtToken(userId);
-                return Ok(new { Token = tokenString });
+                return Unauthorized();
             }
 
-            return Unauthorized();
+            var tokenString = _jwtTokenService.GenerateJwtToken(TrimToMaxLength(userId, 36));
+            return Ok(new { Token = tokenString });
         }
 
-        private string GenerateJwtToken(Guid userId)
+        private static string TrimToMaxLength(string input, int maxLength)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT_SECRET_KEY"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity([new Claim("sub", userId.ToString())]),
-                Expires = DateTime.UtcNow.AddHours(1),
-                Issuer = _configuration["JWT_ISSUER"],
-                Audience = _configuration["JWT_AUDIENCE"],
-                SigningCredentials = creds
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            return input.Length <= maxLength ? input : input.Substring(0, maxLength);
         }
     }
 }
