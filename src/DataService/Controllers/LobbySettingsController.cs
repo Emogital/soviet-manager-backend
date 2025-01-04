@@ -7,7 +7,7 @@ namespace DataService.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class LobbySettingsController(ILobbySettingsService lobbySettingsService, IJwtTokenService jwtTokenService) : BaseController(jwtTokenService)
+    public class LobbySettingsController(ILobbySettingsService lobbySettingsService) : IdentityControllerBase
     {
         private readonly ILobbySettingsService _lobbySettingsService = lobbySettingsService;
 
@@ -15,7 +15,7 @@ namespace DataService.Controllers
         [Authorize]
         public async Task<IActionResult> GetLobbySettings()
         {
-            return await ProcessRequestAsync(async userId =>
+            return await HandleRequestAsync(async userId =>
             {
                 var lobbySettings = await _lobbySettingsService.GetLobbySettingsAsync(userId);
                 return Ok(lobbySettings);
@@ -26,7 +26,7 @@ namespace DataService.Controllers
         [Authorize]
         public async Task<IActionResult> UpdateLobbySettings([FromBody] LobbySettingsDto lobbySettingsDto)
         {
-            return await ProcessRequestAsync(async userId =>
+            return await HandleRequestAsync(async userId =>
             {
                 var updatedLobbySettings = await _lobbySettingsService.CreateOrUpdateLobbySettingsAsync(userId, lobbySettingsDto);
                 return Ok(updatedLobbySettings);

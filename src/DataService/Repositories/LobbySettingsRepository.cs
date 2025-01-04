@@ -8,19 +8,19 @@ namespace DataService.Repositories
     {
         private readonly DataContext _context = context;
 
-        public async Task<LobbySettings> GetLobbySettingsAsync(string userId)
+        public async Task<LobbySettingsData> GetLobbySettingsAsync(string userId)
         {
             return await _context.LobbySettings.SingleOrDefaultAsync(ls => ls.UserId == userId);
         }
 
-        public async Task<LobbySettings> CreateLobbySettingsAsync(LobbySettings lobbySettings)
+        public async Task<LobbySettingsData> CreateLobbySettingsAsync(LobbySettingsData lobbySettings)
         {
             _context.LobbySettings.Add(lobbySettings);
             await _context.SaveChangesAsync();
             return lobbySettings;
         }
 
-        public async Task<LobbySettings> UpdateLobbySettingsAsync(LobbySettings lobbySettings)
+        public async Task<LobbySettingsData> UpdateLobbySettingsAsync(LobbySettingsData lobbySettings)
         {
             _context.LobbySettings.Update(lobbySettings);
             await _context.SaveChangesAsync();

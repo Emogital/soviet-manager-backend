@@ -16,7 +16,7 @@ namespace DataService.Services
             var lobbySettings = await _repository.GetLobbySettingsAsync(userId);
             if (lobbySettings == null)
             {
-                lobbySettings = new LobbySettings { UserId = userId };
+                lobbySettings = new LobbySettingsData { UserId = userId };
                 lobbySettings = await _repository.CreateLobbySettingsAsync(lobbySettings);
             }
 
@@ -29,7 +29,7 @@ namespace DataService.Services
             var lobbySettings = await _repository.GetLobbySettingsAsync(userId);
             if (lobbySettings == null)
             {
-                lobbySettings = new LobbySettings
+                lobbySettings = new LobbySettingsData
                 {
                     UserId = userId,
                     MatchName = TrimToMaxLength(lobbySettingsDto.MatchName, 16),

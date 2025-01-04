@@ -5,6 +5,6 @@ namespace DataService.Data
 {
     public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
     {
-        public DbSet<LobbySettings> LobbySettings { get; set; }
+        public DbSet<LobbySettingsData> LobbySettings { get; set; }
     }
 }

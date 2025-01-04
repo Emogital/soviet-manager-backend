@@ -22,7 +22,6 @@ namespace DataService
 
             services.AddScoped<ILobbySettingsService, LobbySettingsService>();
             services.AddScoped<ILobbySettingsRepository, LobbySettingsRepository>();
-            services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>

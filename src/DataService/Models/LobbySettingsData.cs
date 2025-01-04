@@ -2,7 +2,7 @@
 
 namespace DataService.Models
 {
-    public class LobbySettings
+    public class LobbySettingsData
     {
         [Key]
         [MaxLength(36)]
