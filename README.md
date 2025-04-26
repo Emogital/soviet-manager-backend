@@ -33,6 +33,7 @@ Welcome to the Soviet Manager Backend repository. This project is the server-sid
   - [Code Style Convention](#code-style-convention)
   - [Branch Naming Convention](#branch-naming-convention)
 - [Docker Support](#docker-support)
+  - [Docker Compose](#docker-compose)
 - [Contribution Guidelines](#contribution-guidelines)
 - [License](#license)
 
@@ -74,17 +75,9 @@ Follow the branch naming conventions specified in [BranchNamingConvention.md](do
 
 ## Docker Support
 
-The project includes a Dockerfile for containerization. To build and run the Docker container, use the following commands:
+### Docker Compose
 
-1. **Build the Docker image**:
-    ```bash
-    docker build -t soviet-manager-backend .
-    ```
-
-2. **Run the Docker container**:
-    ```bash
-    docker run -p 8080:80 soviet-manager-backend
-    ```
+Instructions for building, running, and managing all backend services with Docker Compose are provided in [DockerCompose.md](docs/DockerCompose.md).
 
 ## License
 

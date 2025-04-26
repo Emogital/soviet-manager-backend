@@ -1,0 +1,52 @@
+services:
+  dataservice:
+    build:
+      context: ./src/DataService
+      dockerfile: Dockerfile
+    container_name: dataservice-container
+    ports:
+      - "8082:8082"
+      - "8083:8083"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - ASPNETCORE_URLS=http://+:8082
+    networks:
+      - backend-network
+
+  authservice:
+    build:
+      context: ./src/AuthService
+      dockerfile: Dockerfile
+    container_name: authservice-container
+    ports:
+      - "8086:8086"
+      - "8087:8087"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - ASPNETCORE_URLS=http://+:8086
+    networks:
+      - backend-network
+
+  gameserver:
+    build:
+      context: ./src/GameServer
+      dockerfile: Dockerfile
+    container_name: gameserver-container
+    ports:
+      - "8084:8084"
+      - "8085:8085"
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - ASPNETCORE_URLS=http://+:8084
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
