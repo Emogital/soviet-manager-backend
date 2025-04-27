@@ -4,9 +4,6 @@ services:
       context: ./src/DataService
       dockerfile: Dockerfile
     container_name: dataservice-container
-    ports:
-      - "8082:8082"
-      - "8083:8083"
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ISSUER=${JWT_ISSUER}
@@ -20,9 +17,6 @@ services:
       context: ./src/AuthService
       dockerfile: Dockerfile
     container_name: authservice-container
-    ports:
-      - "8086:8086"
-      - "8087:8087"
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ISSUER=${JWT_ISSUER}
@@ -36,9 +30,6 @@ services:
       context: ./src/GameServer
       dockerfile: Dockerfile
     container_name: gameserver-container
-    ports:
-      - "8084:8084"
-      - "8085:8085"
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ISSUER=${JWT_ISSUER}
@@ -47,6 +38,21 @@ services:
     networks:
       - backend-network
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-container
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - dataservice
+      - authservice
+      - gameserver
+    networks:
+      - backend-network
+
 networks:
   backend-network:
     driver: bridge
+    internal: true

@@ -49,19 +49,12 @@ To set up the project locally, follow these steps:
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/your-username/soviet-manager-backend.git
+    git clone https://github.com/emogital/soviet-manager-backend.git
     cd soviet-manager-backend
     ```
 
-2. **Open the solution in Visual Studio**:
-    - Open `SovietManagerBackend.sln` in Visual Studio.
-
-3. **Build the solution**:
-    - Build the solution to restore the dependencies and compile the code.
-
-4. **Run the project**:
-    - Set `GameServer` as the startup project.
-    - Run the project using Visual Studio.
+2. **Environment configuration and application run**:
+    - Create and configure .env file, run docker compose (see [Docker Support](#docker-support)).
 
 ## Development Guidelines
 
@@ -102,4 +95,3 @@ Instructions for building, running, and managing all backend services with Docke
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
-    

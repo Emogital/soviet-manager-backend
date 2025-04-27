@@ -11,9 +11,12 @@ This document explains how to build and run the Soviet Manager Backend project u
 
 ## Services
 
-- **DataService** — Port: 8082
-- **AuthService** — Port: 8086
-- **GameServer** — Port: 8084
+- **Nginx** — Public Port: 80
+- **DataService** — Internal Port: 8082
+- **AuthService** — Internal Port: 8086
+- **GameServer** — Internal Port: 8084
+
+All internal services are hidden behind Nginx and not directly accessible from outside.
 
 ## Environment Variables
 
@@ -58,10 +61,21 @@ Specific service:
 docker-compose logs dataservice
 docker-compose logs authservice
 docker-compose logs gameserver
+docker-compose logs nginx
 ```
+
+## Health Check
+
+The Nginx server responds on `/health` route:
+
+```bash
+curl http://your-server-ip-or-domain/health
+```
+- Response should be `OK`.
 
 ## Troubleshooting
 
 - **Ports already in use**: Free the ports or update port mappings in `docker-compose.yml`.
 - **Environment variables issues**: Ensure `.env` file exists and is correctly filled.
-- **Service connection problems**: All services must be on the `soviet-network`.
+- **Service connection problems**: All services must be on the `backend-network` (internal-only network).
+- **Nginx not routing properly**: Check `nginx.conf` volume mount and service names.
