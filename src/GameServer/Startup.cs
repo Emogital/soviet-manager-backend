@@ -2,6 +2,9 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GameServer.Hubs;
+using GameServer.Services.Gameplay.Rooms;
+using GameServer.Services.Gameplay.Matches;
+using GameServer.Services.Gameplay.Players;
 
 namespace GameServer
 {
@@ -12,6 +15,10 @@ namespace GameServer
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            services.AddSingleton<IMatchService, MatchService>();
+            services.AddSingleton<IPlayerService, PlayerService>();
+            services.AddSingleton<IRoomService, RoomService>();
 
             services.AddSignalR(options =>
                     {

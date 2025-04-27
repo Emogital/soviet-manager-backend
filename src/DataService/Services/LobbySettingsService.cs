@@ -32,7 +32,7 @@ namespace DataService.Services
                 lobbySettings = new LobbySettingsData
                 {
                     UserId = userId,
-                    MatchName = TrimToMaxLength(lobbySettingsDto.MatchName, 16),
+                    RoomName = TrimToMaxLength(lobbySettingsDto.RoomName, 16),
                     PlayerName = TrimToMaxLength(lobbySettingsDto.PlayerName, 16),
                     PlayerNick = TrimToMaxLength(lobbySettingsDto.PlayerNick, 16),
                     PlayerRating = Math.Clamp(lobbySettingsDto.PlayerRating, 0, int.MaxValue)
@@ -41,7 +41,7 @@ namespace DataService.Services
             }
             else
             {
-                lobbySettings.MatchName = TrimToMaxLength(lobbySettingsDto.MatchName, 16);
+                lobbySettings.RoomName = TrimToMaxLength(lobbySettingsDto.RoomName, 16);
                 lobbySettings.PlayerName = TrimToMaxLength(lobbySettingsDto.PlayerName, 16);
                 lobbySettings.PlayerNick = TrimToMaxLength(lobbySettingsDto.PlayerNick, 16);
                 lobbySettings.PlayerRating = Math.Clamp(lobbySettingsDto.PlayerRating, 0, int.MaxValue);
