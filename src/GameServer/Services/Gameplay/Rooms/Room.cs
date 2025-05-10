@@ -1,21 +1,32 @@
 ﻿using GameServer.Dtos;
+using GameServer.Enums;
+using GameServer.Hubs;
 using GameServer.Services.Gameplay.Players;
+using Microsoft.AspNetCore.SignalR;
 
 namespace GameServer.Services.Gameplay.Rooms
 {
     public class Room : IDisposable
     {
-        public string Name { get; }
-        public Player?[] Players { get; }
+        private readonly IHubContext<MatchHub> hubContext;
+
+        public readonly string Name;
+        public readonly GameMode GameMode;
+        public readonly Player?[] Players;
 
         public RoomStatus Status { get; private set; }
 
+        public RoomData Data => new RoomData(this);
+
         public event Action<Room>? StatusChanged;
 
-        public Room(RoomRequestDto roomRequest)
+        public Room(IHubContext<MatchHub> hubContext, RoomRequestDto roomRequest)
         {
+            this.hubContext = hubContext;
+
             Name = roomRequest.LobbySettings.RoomName;
-            Players = new Player[roomRequest.RoomSize];
+            GameMode = roomRequest.GameMode;
+            Players = new Player[roomRequest.RoomCapacity];
 
             Status = RoomStatus.Awaiting;
         }
@@ -31,19 +42,6 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             return false;
-        }
-
-        private bool IsRoomEmpty()
-        {
-            foreach (var player in Players)
-            {
-                if (player != null && player.Status == PlayerStatus.Connected)
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         public bool IsSelfRoomOrEmpty(string userId)
@@ -93,22 +91,48 @@ namespace GameServer.Services.Gameplay.Rooms
             return false;
         }
 
+        private bool IsRoomEmpty()
+        {
+            foreach (var player in Players)
+            {
+                if (player != null && player.Status == PlayerStatus.Connected)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void OnPlayerStatusChanged(Player player)
         {
+            NotifyAllPlayers();
+
+            if (player.Status == PlayerStatus.Connected)
+            {
+                return;
+            }
+
             if (player.Status == PlayerStatus.Removed)
             {
                 player.StatusChanged -= OnPlayerStatusChanged;
-            }
-
-            if(player.Status == PlayerStatus.Connected)
-            {
-                return;
             }
 
             if (IsRoomEmpty())
             {
                 Status = RoomStatus.Removing;
                 StatusChanged?.Invoke(this);
+            }
+        }
+
+        private void NotifyAllPlayers()
+        {
+            foreach (var player in Players)
+            {
+                if (player != null && player.Status != PlayerStatus.Removed)
+                {
+                    hubContext.Clients.User(player.UserId).SendAsync("RoomUpdated", Data);
+                }
             }
         }
 

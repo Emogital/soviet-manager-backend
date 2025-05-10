@@ -1,12 +1,24 @@
 ﻿using GameServer.Dtos;
+using GameServer.Hubs;
 using GameServer.Services.Gameplay.Players;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
 namespace GameServer.Services.Gameplay.Rooms
 {
-    public class RoomService(IPlayerService playerService, ILogger<RoomService> logger) : IRoomService
+    public class RoomService(IPlayerService playerService, IHubContext<MatchHub> hubContext, ILogger<RoomService> logger) : IRoomService
     {
         private readonly ConcurrentDictionary<string, Room> rooms = new();
+
+        public RoomData? GetRoomData(string roomName)
+        {
+            if (rooms.TryGetValue(roomName, out var room) == false || room == null)
+            {
+                return null;
+            }
+
+            return room.Data;
+        }
 
         public bool TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest)
         {
@@ -34,7 +46,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 }
             }
 
-            var room = new Room(roomRequest);
+            var room = new Room(hubContext, roomRequest);
             var player = playerService.CreatePlayer(userId, roomRequest.LobbySettings.PlayerName, room.Name);
             room.StatusChanged += OnRoomStatusChanged;
 

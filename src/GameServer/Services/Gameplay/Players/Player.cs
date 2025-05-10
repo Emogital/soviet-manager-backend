@@ -20,9 +20,9 @@ namespace GameServer.Services.Gameplay.Players
             Status = PlayerStatus.Disconnected;
         }
 
-        public void ChangeStatus(PlayerStatus newStaus)
+        public void ChangeStatus(PlayerStatus newStatus)
         {
-            Status = newStaus;
+            Status = newStatus;
             StatusChanged?.Invoke(this);
         }
     }

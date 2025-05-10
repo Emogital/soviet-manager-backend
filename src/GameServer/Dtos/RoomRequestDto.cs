@@ -6,6 +6,6 @@ namespace GameServer.Dtos
     {
         public required LobbySettingsDto LobbySettings { get; set; }
         public GameMode GameMode { get; set; }
-        public int RoomSize { get; set; }
+        public int RoomCapacity { get; set; }
     }
 }
