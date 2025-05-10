@@ -79,6 +79,19 @@ namespace GameServer.Services.Gameplay.Rooms
 
             return false;
         }
+        
+        public bool TryRemovePlayer(int playerId, out Player? player)
+        {
+            player = Players[playerId];
+            if (player != null)
+            {
+                player.StatusChanged -= OnPlayerStatusChanged;
+                Players[playerId] = null;
+                return true;
+            }
+
+            return false;
+        }
 
         private void OnPlayerStatusChanged(Player player)
         {

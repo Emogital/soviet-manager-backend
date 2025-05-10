@@ -2,9 +2,10 @@
 
 namespace GameServer.Services.Gameplay.Players
 {
-    public class Player(string userId, string roomName)
+    public class Player(string userId, string playerName, string roomName)
     {
         public string UserId => userId;
+        public string Name => playerName;
         public string RoomName => roomName;
 
         public int Id { get; private set; }

@@ -6,18 +6,16 @@ namespace GameServer.Services.Gameplay.Players
     {
         private readonly ConcurrentDictionary<string, Player> players = new();
 
-        public Player CreatePlayer(string userId, string roomName)
+        public Player CreatePlayer(string userId, string playerName, string roomName)
         {
             if (players.TryRemove(userId, out var existingPlayer))
             {
                 existingPlayer.ChangeStatus(PlayerStatus.Removed);
             }
 
-            var player = new Player(userId, roomName);
+            var player = new Player(userId, playerName, roomName);
             players[userId] = player;
-
-            logger.LogInformation("Player created with ID {PlayerId} in room {RoomName}", player.Id, roomName);
-
+            logger.LogInformation("Created new Player {PlayerName}", playerName);
             return player;
         }
 
@@ -37,7 +35,7 @@ namespace GameServer.Services.Gameplay.Players
             {
                 if (players.TryRemove(player.UserId,out _))
                 {
-                    logger.LogInformation("Removed Player {player.Id} {player.RoomName}", player.Id, player.RoomName);
+                    logger.LogInformation("Removed Player {PlayerName}", player.Name);
                 }
             }
 
