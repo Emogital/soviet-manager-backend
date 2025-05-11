@@ -2,7 +2,7 @@
 
 namespace GameServer.Services.Gameplay.Players
 {
-    public class PlayerService(ILogger<PlayerService> logger) : IPlayerService
+    public class PlayerService(IPlayerHeartbeatTracker heartbeatTracker, ILogger<PlayerService> logger) : IPlayerService
     {
         private readonly ConcurrentDictionary<string, Player> players = new();
 
@@ -45,6 +45,7 @@ namespace GameServer.Services.Gameplay.Players
             }
 
             player.ChangeStatus(PlayerStatus.Removed);
+            heartbeatTracker.RemoveHeartbeat(player.UserId);
         }
     }
 }

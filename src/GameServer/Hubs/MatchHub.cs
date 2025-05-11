@@ -6,7 +6,11 @@ using Microsoft.AspNetCore.SignalR;
 namespace GameServer.Hubs
 {
     [Authorize(AuthenticationSchemes = "Cookie")]
-    public class MatchHub(IRoomService roomService, IPlayerService playerService, ILogger<MatchHub> logger) : Hub
+    public class MatchHub(
+        IRoomService roomService,
+        IPlayerService playerService,
+        IPlayerHeartbeatTracker heartbeatTracker,
+        ILogger<MatchHub> logger) : Hub
     {
         public async Task<RoomData?> GetRoomAsync()
         {
@@ -34,6 +38,19 @@ namespace GameServer.Hubs
 
             player.ChangeStatus(PlayerStatus.Connected);
             return room;
+        }
+
+        public Task TrackHeartbeat()
+        {
+            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
+            var userId = userIdClaim?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                heartbeatTracker.RecordHeartbeat(userId);
+            }
+
+            return Task.CompletedTask;
         }
 
         public override async Task OnConnectedAsync()

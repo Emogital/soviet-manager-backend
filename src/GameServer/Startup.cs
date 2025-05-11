@@ -18,6 +18,7 @@ namespace GameServer
 
             services.AddSingleton<IMatchService, MatchService>();
             services.AddSingleton<IPlayerService, PlayerService>();
+            services.AddSingleton<IPlayerHeartbeatTracker, PlayerHeartbeatTracker>();
             services.AddSingleton<IRoomService, RoomService>();
 
             services.AddSignalR(options =>
