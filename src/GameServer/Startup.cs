@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using GameServer.Hubs;
+using GameServer.Services.Core.SignalR;
 using GameServer.Services.Gameplay.Rooms;
 using GameServer.Services.Gameplay.Matches;
 using GameServer.Services.Gameplay.Players;
@@ -20,6 +22,7 @@ namespace GameServer
             services.AddSingleton<IPlayerService, PlayerService>();
             services.AddSingleton<IPlayerHeartbeatTracker, PlayerHeartbeatTracker>();
             services.AddSingleton<IRoomService, RoomService>();
+            services.AddSingleton<IUserIdProvider, UserIdProvider>();
 
             services.AddSignalR(options =>
                     {
