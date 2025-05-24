@@ -52,7 +52,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 {
                     continue;
                 }
-            
+
                 if (player.UserId != userId && player.Status == PlayerStatus.Connected)
                 {
                     return false;
@@ -77,7 +77,7 @@ namespace GameServer.Services.Gameplay.Rooms
 
             return false;
         }
-        
+
         public bool TryRemovePlayer(int playerId, out Player? player)
         {
             player = Players[playerId];
@@ -89,6 +89,36 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             return false;
+        }
+
+        public bool TryStartMatch(string userId)
+        {
+            if (Status == RoomStatus.Playing)
+            {
+                return false;
+            }
+
+            foreach (var player in Players)
+            {
+                if (player == null || player.Status != PlayerStatus.Connected)
+                {
+                    return false;
+                }
+            }
+
+            Status = RoomStatus.Playing;
+
+            foreach (var player in Players)
+            {
+                if (player == null || player.UserId == userId)
+                {
+                    continue;
+                }
+
+                hubContext.Clients.User(player.UserId).SendAsync("MatchStarted");
+            }
+
+            return true;
         }
 
         private bool IsRoomEmpty()
@@ -148,6 +178,8 @@ namespace GameServer.Services.Gameplay.Rooms
 
                 Players[playerId] = null;
             }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

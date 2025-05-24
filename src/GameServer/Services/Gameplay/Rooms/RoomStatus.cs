@@ -4,7 +4,7 @@
     {
         None = 0,
         Awaiting = 1,
-        Processing = 2,
+        Playing = 2,
         Removing = 3,
     }
 }

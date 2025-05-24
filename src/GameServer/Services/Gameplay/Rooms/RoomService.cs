@@ -30,6 +30,23 @@ namespace GameServer.Services.Gameplay.Rooms
             return TryCreateRoom(userId, roomRequest);
         }
 
+        public bool TryStartMatch(string userId)
+        {
+            if (playerService.TryGetPlayer(userId, out Player? player) == false || player == null)
+            {
+                logger.LogInformation("Failed to find player instance for user identifier");
+                return false;
+            }
+
+            if (rooms.TryGetValue(player.RoomName, out var room) == false || room == null)
+            {
+                logger.LogInformation("Failed to find room for for user identifier");
+                return false;
+            }
+
+            return room.TryStartMatch(userId);
+        }
+
         private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
             if (rooms.TryGetValue(roomRequest.LobbySettings.RoomName, out var existingRoom))
@@ -69,7 +86,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 existingPlayer.RoomName == roomRequest.LobbySettings.RoomName &&
                 rooms.ContainsKey(roomRequest.LobbySettings.RoomName))
             {
-                logger.LogInformation("Player {PlayerName} registered already in Room {RoomName}", existingPlayer.Name, existingPlayer.RoomName);
+                logger.LogInformation("Player {PlayerName} reconnected to Room {RoomName}", existingPlayer.Name, existingPlayer.RoomName);
                 return true;
             }
 
