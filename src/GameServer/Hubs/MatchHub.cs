@@ -1,4 +1,4 @@
-﻿using GameServer.Services.Gameplay.Players;
+using GameServer.Services.Gameplay.Players;
 using GameServer.Services.Gameplay.Rooms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -12,38 +12,56 @@ namespace GameServer.Hubs
         IPlayerHeartbeatTracker heartbeatTracker,
         ILogger<MatchHub> logger) : Hub
     {
+        private const string UserIdClaimType = "user_id";
+
+        public override async Task OnConnectedAsync()
+        {
+            ExecuteWithPlayer(
+                player =>
+                {
+                    logger.LogInformation("Player {PlayerName} connected", player.Name);
+                    player.ChangeStatus(PlayerStatus.Connected);
+                });
+
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            ExecuteWithPlayer(
+                player =>
+                {
+                    logger.LogInformation("Player {PlayerName} disconnected", player.Name);
+                    player.ChangeStatus(PlayerStatus.Disconnected);
+                });
+
+            await base.OnDisconnectedAsync(exception);
+        }
+
         public async Task<RoomData?> GetRoomAsync()
         {
-            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
-            var userId = userIdClaim?.Value;
-
-            if (string.IsNullOrEmpty(userId))
+            try
             {
-                logger.LogInformation("User identifier is not available");
-                return await Task.FromException<RoomData>(new InvalidOperationException("User identifier is not available"));
-            }
+                var player = GetCurrentPlayer();
+                var room = roomService.GetRoomData(player.RoomName);
 
-            if (playerService.TryGetPlayer(userId, out Player? player) == false || player == null)
+                if (room == null)
+                {
+                    logger.LogWarning("Failed to find room data for player: {PlayerName}", player.Name);
+                    throw new InvalidOperationException("Failed to find room data for user");
+                }
+
+                return room;
+            }
+            catch (InvalidOperationException)
             {
-                logger.LogInformation("Failed to find player instance for user identifier");
-                return await Task.FromException<RoomData>(new InvalidOperationException("Failed to find player instance for user identifier"));
+                return await Task.FromException<RoomData>(new InvalidOperationException("Unable to retrieve room data"));
             }
-
-            RoomData? room = roomService.GetRoomData(player.RoomName);
-            if (room == null)
-            {
-                logger.LogInformation("Failed to find room data for for user identifier");
-                return await Task.FromException<RoomData>(new InvalidOperationException("Failed to find room data for for user identifier"));
-            }
-
-            return room;
         }
 
         public Task TrackHeartbeat()
         {
-            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
-            var userId = userIdClaim?.Value;
-
+            var userId = GetCurrentUserId();
             if (!string.IsNullOrEmpty(userId))
             {
                 heartbeatTracker.RecordHeartbeat(userId);
@@ -54,66 +72,63 @@ namespace GameServer.Hubs
 
         public Task<bool> TryStartMatch()
         {
-            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
-            var userId = userIdClaim?.Value;
-
-            if (string.IsNullOrEmpty(userId))
+            try
             {
-                logger.LogInformation("User identifier is not available");
-                return Task.FromException<bool>(new InvalidOperationException("User identifier is not available"));
+                var userId = GetValidatedUserId();
+                return Task.FromResult(roomService.TryStartMatch(userId));
             }
-
-            return Task.FromResult(roomService.TryStartMatch(userId));
+            catch (InvalidOperationException ex)
+            {
+                return Task.FromException<bool>(ex);
+            }
         }
 
-        public override async Task OnConnectedAsync()
+        private string? GetCurrentUserId()
         {
-            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
-            var userId = userIdClaim?.Value;
-
-            if (string.IsNullOrEmpty(userId))
-            {
-                logger.LogInformation("User identifier is not available");
-            }
-            else
-            {
-                if (playerService.TryGetPlayer(userId, out Player? player) == false || player == null)
-                {
-                    logger.LogInformation("Failed to find player instance for user identifier");
-                }
-                else
-                {
-                    logger.LogInformation("Player {PlayerName} connected", player.Name);
-                    player.ChangeStatus(PlayerStatus.Connected);
-                }
-            }
-
-            await base.OnConnectedAsync();
+            return Context.User?.Claims.FirstOrDefault(x => x.Type == UserIdClaimType)?.Value;
         }
 
-        public override async Task OnDisconnectedAsync(Exception? exception)
+        private string GetValidatedUserId()
         {
-            var userIdClaim = Context.User?.Claims.FirstOrDefault(x => x.Type == "user_id");
-            var userId = userIdClaim?.Value;
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                logger.LogWarning("User identifier is not available in authentication context");
+                throw new InvalidOperationException("User identifier is not available");
+            }
 
+            return userId;
+        }
+
+        private Player GetCurrentPlayer()
+        {
+            var userId = GetValidatedUserId();
+
+            if (!playerService.TryGetPlayer(userId, out Player? player) || player == null)
+            {
+                logger.LogWarning("Failed to find player instance for user identifier: {UserId}", userId);
+                throw new InvalidOperationException("Failed to find player instance for user identifier");
+            }
+
+            return player;
+        }
+
+        private void ExecuteWithPlayer(Action<Player> action)
+        {
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 logger.LogInformation("User identifier is not available");
-            }
-            else
-            {
-                if (playerService.TryGetPlayer(userId, out Player? player) == false || player == null)
-                {
-                    logger.LogInformation("Failed to find player instance for user identifier");
-                }
-                else
-                {
-                    logger.LogInformation("Player {PlayerName} disconnected", player.Name);
-                    player.ChangeStatus(PlayerStatus.Disconnected);
-                }
+                return;
             }
 
-            await base.OnDisconnectedAsync(exception);
+            if (!playerService.TryGetPlayer(userId, out Player? player) || player == null)
+            {
+                logger.LogInformation("Failed to find player instance for user identifier");
+                return;
+            }
+
+            action(player);
         }
     }
 }
