@@ -1,6 +1,7 @@
 ﻿using GameServer.Dtos;
 using GameServer.Enums;
 using GameServer.Hubs;
+using GameServer.Services.Gameplay.Matches;
 using GameServer.Services.Gameplay.Players;
 using Microsoft.AspNetCore.SignalR;
 
@@ -15,6 +16,7 @@ namespace GameServer.Services.Gameplay.Rooms
         public readonly Player?[] Players;
 
         public RoomStatus Status { get; private set; }
+        public Match? Match { get; private set; }
 
         public RoomData Data => new RoomData(this);
 
@@ -95,7 +97,7 @@ namespace GameServer.Services.Gameplay.Rooms
         {
             if (Status == RoomStatus.Playing)
             {
-                return false;
+                return true;
             }
 
             foreach (var player in Players)
@@ -107,15 +109,12 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             Status = RoomStatus.Playing;
+            Match = new Match(GameMode, Players);
 
             foreach (var player in Players)
             {
-                if (player == null || player.UserId == userId)
-                {
-                    continue;
-                }
-
-                hubContext.Clients.User(player.UserId).SendAsync("MatchStarted");
+                var matchData = Match.GetData(player.UserId);
+                hubContext.Clients.User(player.UserId).SendAsync("MatchStarted", matchData);
             }
 
             return true;
@@ -157,11 +156,12 @@ namespace GameServer.Services.Gameplay.Rooms
 
         private void NotifyAllPlayers()
         {
+            var roomData = Data;
             foreach (var player in Players)
             {
                 if (player != null && player.Status != PlayerStatus.Removed)
                 {
-                    hubContext.Clients.User(player.UserId).SendAsync("RoomUpdated", Data);
+                    hubContext.Clients.User(player.UserId).SendAsync("RoomUpdated", roomData);
                 }
             }
         }
