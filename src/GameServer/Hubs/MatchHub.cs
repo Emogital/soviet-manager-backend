@@ -1,3 +1,4 @@
+using GameServer.Services.Gameplay.Matches.Actions;
 using GameServer.Services.Gameplay.Players;
 using GameServer.Services.Gameplay.Rooms;
 using Microsoft.AspNetCore.Authorization;
@@ -83,6 +84,19 @@ namespace GameServer.Hubs
             }
         }
 
+        public Task<bool> TryRegisterPlayerAction(PlayerActionDataContainer actionDataContainer)
+        {
+            try
+            {
+                var room = GetPlayerRoom(out var player);
+                return Task.FromResult(room.TryRegisterPlayerAction(actionDataContainer, player.Id));
+            }
+            catch (InvalidOperationException)
+            {
+                return Task.FromException<bool>(new InvalidOperationException("Failed to register match action"));
+            }
+        }
+
         private string? GetCurrentUserId()
         {
             return Context.User?.Claims.FirstOrDefault(x => x.Type == UserIdClaimType)?.Value;
@@ -103,14 +117,25 @@ namespace GameServer.Hubs
         private Player GetCurrentPlayer()
         {
             var userId = GetValidatedUserId();
-
-            if (!playerService.TryGetPlayer(userId, out Player? player) || player == null)
+            if (!playerService.TryGetPlayer(userId, out var player) || player == null)
             {
                 logger.LogWarning("Failed to find player instance for user identifier: {UserId}", userId);
                 throw new InvalidOperationException("Failed to find player instance for user identifier");
             }
 
             return player;
+        }
+
+        private Room GetPlayerRoom(out Player player)
+        {
+            player = GetCurrentPlayer();
+            if (!roomService.TryGetRoom(player.RoomName, out var room) || room == null)
+            {
+                logger.LogWarning("Failed to find room instance for player: {PlayerName}", player.Name);
+                throw new InvalidOperationException("Failed to find room instance for player");
+            }
+
+            return room;
         }
 
         private void ExecuteWithPlayer(Action<Player> action)

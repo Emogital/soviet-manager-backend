@@ -47,6 +47,11 @@ namespace GameServer.Services.Gameplay.Rooms
             return room.TryStartMatch(userId);
         }
 
+        public bool TryGetRoom(string roomName, out Room? room)
+        {
+            return rooms.TryGetValue(roomName, out room) && room != null;
+        }
+
         private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
             if (rooms.TryGetValue(roomRequest.LobbySettings.RoomName, out var existingRoom))
@@ -63,7 +68,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 }
             }
 
-            var room = new Room(hubContext, roomRequest);
+            var room = new Room(hubContext, logger, roomRequest);
             var player = playerService.CreatePlayer(userId, roomRequest.LobbySettings.PlayerName, room.Name);
             room.StatusChanged += OnRoomStatusChanged;
 

@@ -1,4 +1,4 @@
-﻿namespace GameServer.Enums
+﻿namespace GameServer.Services.Gameplay
 {
     public enum GameMode
     {

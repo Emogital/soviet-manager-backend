@@ -1,5 +1,4 @@
-﻿using GameServer.Enums;
-using GameServer.Services.Gameplay.Players;
+﻿using GameServer.Services.Gameplay.Players;
 using MessagePack;
 
 namespace GameServer.Services.Gameplay.Matches

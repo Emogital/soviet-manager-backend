@@ -1,4 +1,4 @@
-﻿using GameServer.Enums;
+﻿using GameServer.Services.Gameplay;
 
 namespace GameServer.Dtos
 {

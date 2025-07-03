@@ -7,5 +7,6 @@ namespace GameServer.Services.Gameplay.Rooms
         RoomData? GetRoomData(string roomName);
         bool TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest);
         bool TryStartMatch(string userId);
+        bool TryGetRoom(string roomName, out Room? room);
     }
 }
