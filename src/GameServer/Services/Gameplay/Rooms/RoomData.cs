@@ -34,7 +34,7 @@ namespace GameServer.Services.Gameplay.Rooms
                     continue;
                 }
 
-                Players[i] = new PlayerData(room.Players[i]);
+                Players[i] = room.Players[i].GetData();
             }
         }
     }

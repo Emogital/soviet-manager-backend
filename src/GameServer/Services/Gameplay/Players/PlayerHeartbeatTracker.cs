@@ -6,22 +6,22 @@ namespace GameServer.Services.Gameplay.Players
     {
         private readonly ConcurrentDictionary<string, DateTime> lastHeartbeat = new();
 
-        public void RecordHeartbeat(string userId)
+        public void RecordHeartbeat(string connectionId)
         {
-            lastHeartbeat[userId] = DateTime.UtcNow;
+            lastHeartbeat[connectionId] = DateTime.UtcNow;
         }
         
-        public void RemoveHeartbeat(string userId)
+        public void RemoveHeartbeat(string connectionId)
         {
-            if (lastHeartbeat.TryRemove(userId, out _))
+            if (lastHeartbeat.TryRemove(connectionId, out _))
             {
                 logger.LogInformation("Player heartbeat removed from tracker");
             }
         }
 
-        public DateTime? GetLastHeartbeat(string userId)
+        public DateTime? GetLastHeartbeat(string connectionId)
         {
-            return lastHeartbeat.TryGetValue(userId, out var ts) ? ts : null;
+            return lastHeartbeat.TryGetValue(connectionId, out var ts) ? ts : null;
         }
 
         public IReadOnlyDictionary<string, DateTime> GetAllLastHeartbeats()

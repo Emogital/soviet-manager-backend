@@ -36,13 +36,13 @@ namespace GameServer.Services.Gameplay.Matches
 
             for (int order = 0; order < match.PlayersOrder.Length; order++)
             {
-                var player = match.PlayersOrder[order];
-                if (player.UserId == targetUserId)
+                var matchPlayer = match.PlayersOrder[order];
+                if (matchPlayer is Player player && player.UserId == targetUserId)
                 {
                     OwnOrder = order;
                 }
 
-                PlayersOrder[order] = new PlayerData(player);
+                PlayersOrder[order] = matchPlayer.GetData();
             }
         }
     }

@@ -19,7 +19,6 @@ namespace GameServer
             services.AddControllers();
 
             services.AddSingleton<IMatchService, MatchService>();
-            services.AddSingleton<IPlayerService, PlayerService>();
             services.AddSingleton<IPlayerHeartbeatTracker, PlayerHeartbeatTracker>();
             services.AddSingleton<IRoomService, RoomService>();
             services.AddSingleton<IUserIdProvider, UserIdProvider>();

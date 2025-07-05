@@ -66,36 +66,25 @@ namespace GameServer.Services.Gameplay.Rooms
             return true;
         }
 
-        public bool TryRegisterPlayer(Player player)
+        public bool TryRegisterNewPlayer(string userId, string playerName)
         {
             for (int playerId = 0; playerId < Players.Length; playerId++)
             {
-                if (Players[playerId] == null)
+                if (Players[playerId] != null)
                 {
-                    Players[playerId] = player;
-                    player.Initialize(playerId);
-                    player.StatusChanged += OnPlayerStatusChanged;
-                    return true;
+                    continue;
                 }
-            }
 
-            return false;
-        }
-
-        public bool TryRemovePlayer(int playerId, out Player? player)
-        {
-            player = Players[playerId];
-            if (player != null)
-            {
-                player.StatusChanged -= OnPlayerStatusChanged;
-                Players[playerId] = null;
+                var player = new Player(userId, playerName, Name, playerId);
+                Players[playerId] = player;
+                player.StatusChanged += OnPlayerStatusChanged;
                 return true;
             }
 
             return false;
         }
 
-        public bool TryStartMatch(string userId)
+        public bool TryStartMatch()
         {
             if (Status == RoomStatus.Playing)
             {
@@ -122,37 +111,35 @@ namespace GameServer.Services.Gameplay.Rooms
             return true;
         }
 
-        public bool TryRegisterPlayerAction(PlayerActionDataContainer actionDataContainer, int playerId)
+        public bool TryRegisterPlayerAction(PlayerActionDataContainer actionDataContainer, string connectionId)
         {
-            var playerAction = actionDataContainer.PlayerAction;
-            if (playerAction.ActorId != playerId)
+            var player = GetPlayerByConnectionId(connectionId);
+            if (player == null)
             {
-                logger.LogInformation("Player for id {PlayerId} try to register not own action in room {RoomName}", playerId, Name);
+                logger.LogWarning("Failed to find player with connection id {ConnectionId} in room {RoomName}", connectionId, Name);
+                return false;
+            }
+
+            var playerAction = actionDataContainer.PlayerAction;
+            if (playerAction.ActorId != player.Id)
+            {
+                logger.LogWarning("Player with id {PlayerId} try to register not own action in room {RoomName}", player.Id, Name);
                 return false;
             }
 
             if (Match is null)
             {
-                logger.LogInformation("Match instance is null in room {RoomName}", Name);
+                logger.LogWarning("Match instance is null in room {RoomName}", Name);
                 return false;
             }
 
-            if (!Match.TryRegisterPlayerAction(playerAction))
+            if (Match.TryRegisterPlayerAction(playerAction) == false)
             {
-                logger.LogInformation("Registration of action from player for id {PlayerId} is rejected in room {RoomName}", playerId, Name);
+                logger.LogWarning("Registration of action from player with id {PlayerId} is rejected in room {RoomName}", player.Id, Name);
                 return false;
             }
 
-            foreach (var player in Players)
-            {
-                if (player.Id == playerId)
-                {
-                    continue;
-                }
-
-                hubContext.Clients.User(player.UserId).SendAsync("PlayerActionPerformed", actionDataContainer);
-            }
-
+            hubContext.Clients.GroupExcept(Name, [connectionId]).SendAsync("PlayerActionPerformed", actionDataContainer);
             logger.LogInformation("Plater action {ActionType} for actor id {ActorId} registered in room {RoomName}", playerAction.GetType().Name, playerAction.ActorId, Name);
             return true;
         }
@@ -170,19 +157,27 @@ namespace GameServer.Services.Gameplay.Rooms
             return true;
         }
 
+        private Player? GetPlayerByConnectionId(string connectionId)
+        {
+            foreach (var player in Players)
+            {
+                if (player != null && player.ConnectionId == connectionId)
+                {
+                    return player;
+                }
+            }
+
+            return null;
+        }
+
         private void OnPlayerStatusChanged(Player player)
         {
-            NotifyAllPlayers();
-
-            if (player.Status == PlayerStatus.Connected)
-            {
-                return;
-            }
-
             if (player.Status == PlayerStatus.Removed)
             {
-                player.StatusChanged -= OnPlayerStatusChanged;
+                RemovePlayer(player);
             }
+
+            hubContext.Clients.Group(Name).SendAsync("RoomUpdated", Data);
 
             if (IsRoomEmpty())
             {
@@ -191,16 +186,11 @@ namespace GameServer.Services.Gameplay.Rooms
             }
         }
 
-        private void NotifyAllPlayers()
+        private void RemovePlayer(Player player)
         {
-            var roomData = Data;
-            foreach (var player in Players)
-            {
-                if (player != null && player.Status != PlayerStatus.Removed)
-                {
-                    hubContext.Clients.User(player.UserId).SendAsync("RoomUpdated", roomData);
-                }
-            }
+            player.StatusChanged -= OnPlayerStatusChanged;
+            hubContext.Groups.RemoveFromGroupAsync(player.ConnectionId, Name);
+            logger.LogInformation("Removed Player {PlayerName}", player.Name);
         }
 
         public void Dispose()
@@ -209,7 +199,7 @@ namespace GameServer.Services.Gameplay.Rooms
             {
                 if (Players[playerId] is Player player && player.Status != PlayerStatus.Removed)
                 {
-                    player.StatusChanged -= OnPlayerStatusChanged;
+                    RemovePlayer(player);
                     player.ChangeStatus(PlayerStatus.Removed);
                 }
 

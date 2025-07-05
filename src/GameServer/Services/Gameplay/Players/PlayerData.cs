@@ -6,21 +6,15 @@ namespace GameServer.Services.Gameplay.Players
     public class PlayerData
     {
         [Key(0)]
-        public readonly string Name;
+        public string Name { get; init; }
 
         [Key(1)]
-        public readonly int Id;
+        public int Id { get; init; }
 
         [Key(2)]
-        public readonly PlayerStatus Status;
+        public int TeamId { get; init; }
 
-        public PlayerData() { }
-
-        public PlayerData(Player player)
-        {
-            Name = player.Name;
-            Id = player.Id;
-            Status = player.Status;
-        }
+        [Key(3)]
+        public PlayerStatus Status { get; init; }
     }
 }

@@ -6,23 +6,26 @@ using System.Collections.Concurrent;
 
 namespace GameServer.Services.Gameplay.Rooms
 {
-    public class RoomService(IPlayerService playerService, IHubContext<MatchHub> hubContext, ILogger<RoomService> logger) : IRoomService
+    public class RoomService(IHubContext<MatchHub> hubContext, ILogger<RoomService> logger) : IRoomService
     {
         private readonly ConcurrentDictionary<string, Room> rooms = new();
-
-        public RoomData? GetRoomData(string roomName)
-        {
-            if (rooms.TryGetValue(roomName, out var room) == false || room == null)
-            {
-                return null;
-            }
-
-            return room.Data;
-        }
+        private readonly ConcurrentDictionary<string, string> connectionToRoom = new();
 
         public bool TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest)
         {
-            if (roomRequest.GameMode == 0)
+            if (string.IsNullOrEmpty(roomRequest.LobbySettings.RoomName))
+            {
+                logger.LogInformation("Failed to join room, room name is empty");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(roomRequest.LobbySettings.PlayerName))
+            {
+                logger.LogInformation("Player name is empty, failed to join room {RoomName}", roomRequest.LobbySettings.RoomName);
+                return false;
+            }
+
+            if (roomRequest.GameMode is GameMode.None)
             {
                 return TryJoinRoom(userId, roomRequest);
             }
@@ -30,35 +33,93 @@ namespace GameServer.Services.Gameplay.Rooms
             return TryCreateRoom(userId, roomRequest);
         }
 
-        public bool TryStartMatch(string userId)
+        public bool TryConnectToRoom(string roomName, string userId, string connectionId, out Room? room)
         {
-            if (playerService.TryGetPlayer(userId, out Player? player) == false || player == null)
+            if (rooms.TryGetValue(roomName, out room) == false || room == null)
             {
-                logger.LogInformation("Failed to find player instance for user identifier");
+                connectionToRoom.TryRemove(connectionId, out _);
+                logger.LogWarning("Failed to find room {RoomName}", roomName);
                 return false;
             }
 
-            if (rooms.TryGetValue(player.RoomName, out var room) == false || room == null)
+            foreach (var player in room.Players)
             {
-                logger.LogInformation("Failed to find room for for user identifier");
-                return false;
+                if (player.UserId != userId)
+                {
+                    continue;
+                }
+
+                connectionToRoom[connectionId] = roomName;
+                player.ConnectionId = connectionId;
+                player.ChangeStatus(PlayerStatus.Connected);
+                hubContext.Groups.AddToGroupAsync(connectionId, roomName);
+                logger.LogInformation("Player {PlayerName} connected to room {RoomName}", player.Name, roomName);
+                return true;
             }
 
-            return room.TryStartMatch(userId);
+            logger.LogWarning("Room {RoomName} not contains player with user id", roomName);
+            return false;
         }
 
-        public bool TryGetRoom(string roomName, out Room? room)
+        public bool TryGetConnectedRoom(string connectionId, out Room? room)
         {
-            return rooms.TryGetValue(roomName, out room) && room != null;
+            room = null;
+
+            if (connectionToRoom.TryGetValue(connectionId, out var roomName) == false)
+            {
+                logger.LogWarning("Failed to find room for connection id");
+                return false;
+            }
+
+            if (rooms.TryGetValue(roomName, out room) == false || room == null)
+            {
+                logger.LogError("Failed to find room {RoomName}", roomName);
+                return false;
+            }
+
+            return true;
+        }
+
+        public async Task DisconnectPlayer(string connectionId)
+        {
+            if (connectionToRoom.TryRemove(connectionId, out var roomName) == false)
+            {
+                return;
+            }
+
+            await hubContext.Groups.RemoveFromGroupAsync(connectionId, roomName);
+
+            if (rooms.TryGetValue(roomName, out var room) == false || room == null)
+            {
+                logger.LogError("Room {RoomName} for hub connection was lost", roomName);
+                return;
+            }
+
+            foreach (var player in room.Players)
+            {
+                if (player.ConnectionId != connectionId)
+                {
+                    continue;
+                }
+
+                player.ChangeStatus(PlayerStatus.Disconnected);
+                logger.LogInformation("Player {PlayerName} disconnected from room {RoomName}", player.Name, roomName);
+                return;
+            }
+
+            logger.LogError("Room {RoomName} not contains player with connection id", roomName);
         }
 
         private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
-            if (rooms.TryGetValue(roomRequest.LobbySettings.RoomName, out var existingRoom))
+            var roomName = roomRequest.LobbySettings.RoomName;
+            var playerName = roomRequest.LobbySettings.PlayerName;
+
+            if (rooms.TryGetValue(roomName, out var existingRoom))
             {
                 if (existingRoom.IsSelfRoomOrEmpty(userId))
                 {
-                    logger.LogInformation("Not used Room {RoomName} found", existingRoom.Name);
+                    logger.LogInformation("Empty room {RoomName} found and removed", existingRoom.Name);
                     RemoveRoom(existingRoom);
                 }
                 else
@@ -69,53 +130,69 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             var room = new Room(hubContext, logger, roomRequest);
-            var player = playerService.CreatePlayer(userId, roomRequest.LobbySettings.PlayerName, room.Name);
             room.StatusChanged += OnRoomStatusChanged;
 
-            if (rooms.TryAdd(roomRequest.LobbySettings.RoomName, room) && room.TryRegisterPlayer(player))
+            if (rooms.TryAdd(roomName, room) && room.TryRegisterNewPlayer(userId, playerName))
             {
-                logger.LogInformation("Created new Room {RoomName} with Player {PlayerName}", room.Name, player.Name);
+                logger.LogInformation("Created new Room {RoomName} with Player {PlayerName}", roomName, playerName);
                 return true;
             }
 
-            logger.LogInformation("Failed to register new Room {RoomName} or Player {PlayerName}", room.Name, player.Name);
-            playerService.RemovePlayer(player);
+            logger.LogError("Failed to register new Room {RoomName} or Player {PlayerName}", roomName, playerName);
             RemoveRoom(room);
             return false;
         }
 
         private bool TryJoinRoom(string userId, RoomRequestDto roomRequest)
         {
-            if (playerService.TryGetPlayer(userId, out Player? existingPlayer) &&
-                existingPlayer != null &&
-                existingPlayer.RoomName == roomRequest.LobbySettings.RoomName &&
-                rooms.ContainsKey(roomRequest.LobbySettings.RoomName))
+            var roomName = roomRequest.LobbySettings.RoomName;
+            var playerName = roomRequest.LobbySettings.PlayerName;
+
+            if (rooms.TryGetValue(roomName, out var room) == false)
             {
-                logger.LogInformation("Player {PlayerName} reconnected to Room {RoomName}", existingPlayer.Name, existingPlayer.RoomName);
-                return true;
+                logger.LogInformation("Room {RoomName} not exists", roomName);
+                return false;
             }
 
-            if (rooms.TryGetValue(roomRequest.LobbySettings.RoomName, out var room) == false)
+            if (room.Status is not RoomStatus.Awaiting)
             {
-                logger.LogInformation("Room {RoomName} not exists", roomRequest.LobbySettings.RoomName);
+                logger.LogInformation("Failed to join room {RoomName}, due room status {RoomStatus}", roomName, room.Status);
                 return false;
+            }
+
+            foreach (var player in room.Players)
+            {
+                if (player == null)
+                {
+                    continue;
+                }
+
+                if (player.UserId == userId)
+                {
+                    logger.LogInformation("Player {PlayerName} rejoined room {RoomName}", player.Name, roomName);
+                    return true;
+                }
+
+                if (player.Name == playerName)
+                {
+                    logger.LogInformation("Player {PlayerName} taked already in room {RoomName}", playerName, roomName);
+                    return false;
+                }
             }
 
             if (room.IsAvailableToJoin() == false)
             {
-                logger.LogInformation("Room {RoomName} is full already", room.Name);
+                logger.LogInformation("Room {RoomName} is full already, failed to join player {PlayerName}", roomName, playerName);
                 return false;
             }
 
-            var player = playerService.CreatePlayer(userId, roomRequest.LobbySettings.PlayerName, room.Name);
-            if (room.TryRegisterPlayer(player))
+            if (room.TryRegisterNewPlayer(userId, playerName))
             {
-                logger.LogInformation("Player {PlayerName} registered in Room {RoomName}", player.Name, room.Name);
+                logger.LogInformation("Player {PlayerName} registered in Room {RoomName}", playerName, roomName);
                 return true;
             }
 
-            playerService.RemovePlayer(player);
-            logger.LogInformation("Failed to register Player {PlayerName} in Room {RoomName}", player.Name, room.Name);
+            logger.LogError("Failed to register Player {PlayerName} in Room {RoomName}", playerName, roomName);
             return false;
         }
 
@@ -132,25 +209,13 @@ namespace GameServer.Services.Gameplay.Rooms
         {
             if (room == null)
             {
-                logger.LogInformation("Attempt to remove not assigned room");
+                logger.LogError("Attempt to remove not assigned room");
                 return;
             }
 
-            for (int playerId = 0; playerId < room.Players.Length; playerId++)
+            if (rooms.TryRemove(room.Name, out _))
             {
-                if (room.TryRemovePlayer(playerId, out Player? player))
-                {
-                    playerService.RemovePlayer(player);
-                    logger.LogInformation("Player {PlayerName} removed from Room {RoomName}", player?.Name, room.Name);
-                }
-            }
-
-            if (rooms.TryGetValue(room.Name, out var existingRoom) && room == existingRoom)
-            {
-                if (rooms.TryRemove(room.Name, out _))
-                {
-                    logger.LogInformation("Removed Room {room.Name}", room.Name);
-                }
+                logger.LogInformation("Removed Room {room.Name}", room.Name);
             }
 
             room.StatusChanged -= OnRoomStatusChanged;

@@ -4,9 +4,9 @@ namespace GameServer.Services.Gameplay.Rooms
 {
     public interface IRoomService
     {
-        RoomData? GetRoomData(string roomName);
         bool TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest);
-        bool TryStartMatch(string userId);
-        bool TryGetRoom(string roomName, out Room? room);
+        bool TryConnectToRoom(string roomName, string userId, string connectionId, out Room? room);
+        bool TryGetConnectedRoom(string connectionId, out Room? room);
+        Task DisconnectPlayer(string connectionId);
     }
 }

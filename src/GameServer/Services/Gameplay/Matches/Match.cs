@@ -9,7 +9,7 @@ namespace GameServer.Services.Gameplay.Matches
         public readonly string MasterId;
         public readonly int[] ChancesOrder;
         public readonly int[] PenaltiesOrder;
-        public readonly Player[] PlayersOrder;
+        public readonly IMatchPlayer[] PlayersOrder;
         public readonly List<PlayerActionData> PerformedActions;
 
         public Match(GameMode gameMode, Player[] players)
