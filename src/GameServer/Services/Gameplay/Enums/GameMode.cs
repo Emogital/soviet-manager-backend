@@ -22,6 +22,6 @@
         CoopHardcoreMatch = 13,
         ConfrontationMatch = 14,
 
-        CreateOrJoinRatingMatch = 15,
+        RatingMatch = 15,
     }
 }

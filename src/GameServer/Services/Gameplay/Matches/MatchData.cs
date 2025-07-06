@@ -8,20 +8,23 @@ namespace GameServer.Services.Gameplay.Matches
     {
         [Key(0)]
         public readonly GameMode GameMode;
-        
+
         [Key(1)]
-        public readonly bool IsMaster;
+        public readonly RoomTheme Theme;
 
         [Key(2)]
-        public readonly int OwnOrder;
+        public readonly int MasterId;
 
         [Key(3)]
-        public readonly int[] ChancesOrder;
+        public readonly int OwnOrder;
 
         [Key(4)]
-        public readonly int[] PenaltiesOrder;
+        public readonly int[] ChancesOrder;
 
         [Key(5)]
+        public readonly int[] PenaltiesOrder;
+
+        [Key(6)]
         public readonly PlayerData[] PlayersOrder;
 
         public MatchData() { }
@@ -29,7 +32,8 @@ namespace GameServer.Services.Gameplay.Matches
         public MatchData(Match match, string targetUserId)
         {
             GameMode = match.GameMode;
-            IsMaster = targetUserId == match.MasterId;
+            Theme = match.Theme;
+            MasterId = match.MasterId;
             ChancesOrder = match.ChancesOrder;
             PenaltiesOrder = match.PenaltiesOrder;
             PlayersOrder = new PlayerData[match.PlayersOrder.Length];

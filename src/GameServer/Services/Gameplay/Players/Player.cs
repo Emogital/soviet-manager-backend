@@ -1,10 +1,9 @@
 ﻿namespace GameServer.Services.Gameplay.Players
 {
-    public class Player(string userId, string playerName, string roomName, int playerId) : IMatchPlayer
+    public class Player(string userId, string playerName, int playerId) : IMatchPlayer
     {
         public string UserId => userId;
         public string Name => playerName;
-        public string RoomName => roomName;
         public int Id => playerId;
 
         public string ConnectionId { get; set; } = string.Empty;

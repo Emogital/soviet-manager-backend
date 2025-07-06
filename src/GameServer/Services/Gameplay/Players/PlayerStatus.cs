@@ -6,5 +6,6 @@
         Disconnected = 1,
         Connected = 2,
         Removed = 3,
+        AutoControlled = 4,
     }
 }

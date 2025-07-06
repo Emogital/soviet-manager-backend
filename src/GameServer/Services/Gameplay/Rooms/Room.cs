@@ -7,33 +7,23 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace GameServer.Services.Gameplay.Rooms
 {
-    public class Room : IDisposable
+    public class Room(
+        IHubContext<MatchHub> hubContext,
+        IMatchService matchService,
+        ILogger<RoomService> logger,
+        RoomRequestDto roomRequest) : IDisposable
     {
-        private readonly IHubContext<MatchHub> hubContext;
-        private readonly ILogger<RoomService> logger;
+        public readonly string Name = roomRequest.LobbySettings.RoomName;
+        public readonly GameMode GameMode = roomRequest.GameMode;
+        public readonly Player[] Players = new Player[roomRequest.RoomCapacity];
+        public readonly RoomTheme Theme = roomRequest.LobbySettings.Theme;
 
-        public readonly string Name;
-        public readonly GameMode GameMode;
-        public readonly Player[] Players;
-
-        public RoomStatus Status { get; private set; }
+        public RoomStatus Status { get; private set; } = RoomStatus.Awaiting;
         public Match? Match { get; private set; }
 
         public RoomData Data => new RoomData(this);
 
         public event Action<Room>? StatusChanged;
-
-        public Room(IHubContext<MatchHub> hubContext, ILogger<RoomService> logger, RoomRequestDto roomRequest)
-        {
-            this.hubContext = hubContext;
-            this.logger = logger;
-
-            Name = roomRequest.LobbySettings.RoomName;
-            GameMode = roomRequest.GameMode;
-            Players = new Player[roomRequest.RoomCapacity];
-
-            Status = RoomStatus.Awaiting;
-        }
 
         public bool IsAvailableToJoin()
         {
@@ -75,9 +65,10 @@ namespace GameServer.Services.Gameplay.Rooms
                     continue;
                 }
 
-                var player = new Player(userId, playerName, Name, playerId);
+                var player = new Player(userId, playerName, playerId);
                 Players[playerId] = player;
                 player.StatusChanged += OnPlayerStatusChanged;
+                logger.LogInformation("Player {PlayerName} registered in Room {RoomName}", playerName, Name);
                 return true;
             }
 
@@ -99,8 +90,13 @@ namespace GameServer.Services.Gameplay.Rooms
                 }
             }
 
+            if (matchService.TryCreateMatch(this, out var match) == false)
+            {
+                return false;
+            }
+
+            Match = match;
             Status = RoomStatus.Playing;
-            Match = new Match(GameMode, Players);
 
             foreach (var player in Players)
             {
@@ -140,7 +136,12 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             hubContext.Clients.GroupExcept(Name, [connectionId]).SendAsync("PlayerActionPerformed", actionDataContainer);
-            logger.LogInformation("Plater action {ActionType} for actor id {ActorId} registered in room {RoomName}", playerAction.GetType().Name, playerAction.ActorId, Name);
+            logger.LogInformation("Registered player action [{ActionIndex}] {ActionType} for actor id [{ActorId}] in room {RoomName}",
+                playerAction.ActionIndex,
+                playerAction.GetType().Name,
+                playerAction.ActorId,
+                Name);
+
             return true;
         }
 

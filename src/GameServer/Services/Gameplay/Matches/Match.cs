@@ -3,24 +3,15 @@ using GameServer.Services.Gameplay.Players;
 
 namespace GameServer.Services.Gameplay.Matches
 {
-    public class Match
+    public class Match(GameMode gameMode, RoomTheme theme, IMatchPlayer[] players)
     {
-        public readonly GameMode GameMode;
-        public readonly string MasterId;
-        public readonly int[] ChancesOrder;
-        public readonly int[] PenaltiesOrder;
-        public readonly IMatchPlayer[] PlayersOrder;
-        public readonly List<PlayerActionData> PerformedActions;
-
-        public Match(GameMode gameMode, Player[] players)
-        {
-            GameMode = gameMode;
-            MasterId = players[0].UserId;
-            ChancesOrder = ShuffleEventCards();
-            PenaltiesOrder = ShuffleEventCards();
-            PlayersOrder = ShufflePlayers(players);
-            PerformedActions = new();
-        }
+        public readonly GameMode GameMode = gameMode;
+        public readonly RoomTheme Theme = theme;
+        public readonly int MasterId = 0;
+        public readonly int[] ChancesOrder = ShuffleEventCards();
+        public readonly int[] PenaltiesOrder = ShuffleEventCards();
+        public readonly IMatchPlayer[] PlayersOrder = ShufflePlayers(players);
+        public readonly List<PlayerActionData> PerformedActions = new();
 
         public MatchData GetData(string targetUserId)
         {
@@ -56,7 +47,6 @@ namespace GameServer.Services.Gameplay.Matches
         private static int[] ShuffleEventCards(int deckSize = 25)
         {
             Random random = Random.Shared;
-
             int[] shuffledCards = new int[deckSize];
             for (int i = 0; i < shuffledCards.Length; i++)
             {
@@ -72,20 +62,16 @@ namespace GameServer.Services.Gameplay.Matches
             return shuffledCards;
         }
 
-        private static Player[] ShufflePlayers(Player[] players)
+        private static IMatchPlayer[] ShufflePlayers(IMatchPlayer[] players)
         {
             Random random = Random.Shared;
-
-            Player[] shuffledPlayers = new Player[players.Length];
-            Array.Copy(players, shuffledPlayers, players.Length);
-
-            for (int i = shuffledPlayers.Length - 1; i > 0; i--)
+            for (int i = players.Length - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
-                (shuffledPlayers[j], shuffledPlayers[i]) = (shuffledPlayers[i], shuffledPlayers[j]);
+                (players[j], players[i]) = (players[i], players[j]);
             }
 
-            return shuffledPlayers;
+            return players;
         }
     }
 }

@@ -1,12 +1,16 @@
 ﻿using GameServer.Dtos;
 using GameServer.Hubs;
+using GameServer.Services.Gameplay.Matches;
 using GameServer.Services.Gameplay.Players;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
 namespace GameServer.Services.Gameplay.Rooms
 {
-    public class RoomService(IHubContext<MatchHub> hubContext, ILogger<RoomService> logger) : IRoomService
+    public class RoomService(
+        IHubContext<MatchHub> hubContext,
+        IMatchService matchService,
+        ILogger<RoomService> logger) : IRoomService
     {
         private readonly ConcurrentDictionary<string, Room> rooms = new();
         private readonly ConcurrentDictionary<string, string> connectionToRoom = new();
@@ -112,6 +116,11 @@ namespace GameServer.Services.Gameplay.Rooms
 
         private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
+            if (ValidateRoomRequest(roomRequest) == false)
+            {
+                return false;
+            }
+
             var roomName = roomRequest.LobbySettings.RoomName;
             var playerName = roomRequest.LobbySettings.PlayerName;
 
@@ -129,16 +138,16 @@ namespace GameServer.Services.Gameplay.Rooms
                 }
             }
 
-            var room = new Room(hubContext, logger, roomRequest);
+            var room = new Room(hubContext, matchService, logger, roomRequest);
             room.StatusChanged += OnRoomStatusChanged;
 
             if (rooms.TryAdd(roomName, room) && room.TryRegisterNewPlayer(userId, playerName))
             {
-                logger.LogInformation("Created new Room {RoomName} with Player {PlayerName}", roomName, playerName);
+                logger.LogInformation("Created new Room {RoomName} with game mode {GameMode}", roomName, roomRequest.GameMode);
                 return true;
             }
 
-            logger.LogError("Failed to register new Room {RoomName} or Player {PlayerName}", roomName, playerName);
+            logger.LogError("Failed to create new Room {RoomName} or register Player {PlayerName}", roomName, playerName);
             RemoveRoom(room);
             return false;
         }
@@ -188,21 +197,11 @@ namespace GameServer.Services.Gameplay.Rooms
 
             if (room.TryRegisterNewPlayer(userId, playerName))
             {
-                logger.LogInformation("Player {PlayerName} registered in Room {RoomName}", playerName, roomName);
                 return true;
             }
 
             logger.LogError("Failed to register Player {PlayerName} in Room {RoomName}", playerName, roomName);
             return false;
-        }
-
-        private void OnRoomStatusChanged(Room room)
-        {
-            logger.LogInformation("Status of Room {room.Name} changed to {Status}", room.Name, room.Status);
-            if (room.Status == RoomStatus.Removing)
-            {
-                RemoveRoom(room);
-            }
         }
 
         private void RemoveRoom(Room room)
@@ -220,6 +219,87 @@ namespace GameServer.Services.Gameplay.Rooms
 
             room.StatusChanged -= OnRoomStatusChanged;
             room.Dispose();
+        }
+
+        private void OnRoomStatusChanged(Room room)
+        {
+            logger.LogInformation("Status of Room {room.Name} changed to {Status}", room.Name, room.Status);
+            if (room.Status == RoomStatus.Removing)
+            {
+                RemoveRoom(room);
+            }
+        }
+
+        private bool ValidateRoomRequest(RoomRequestDto roomRequest)
+        {
+            return ValidateGameMode(roomRequest) && ValidateRoomCapacity(roomRequest);
+        }
+
+        private bool ValidateGameMode(RoomRequestDto roomRequest)
+        {
+            switch (roomRequest.GameMode)
+            {
+                case GameMode.ClassicMatch:
+                    return true;
+
+                case GameMode.CoopForTwoMatch:
+                    return true;
+
+                case GameMode.TwoByTwoMatch:
+                    return true;
+
+                case GameMode.CoopHardcoreMatch:
+                    return true;
+
+                case GameMode.ConfrontationMatch:
+                    return true;
+
+                case GameMode.RatingMatch:
+                    return true;
+
+                default:
+                    logger.LogWarning("Not allowed room creation for game mode {GameMode}", roomRequest.GameMode);
+                    return false;
+            }
+        }
+
+        private bool ValidateRoomCapacity(RoomRequestDto roomRequest)
+        {
+            if (roomRequest.GameMode is GameMode.TwoByTwoMatch)
+            {
+                if (roomRequest.RoomCapacity != 4)
+                {
+                    logger.LogWarning("Room capacity in {gameMode} game mode should be 4", roomRequest.GameMode);
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (roomRequest.RoomCapacity < 2)
+            {
+                logger.LogWarning("Room capacity can't be less 2");
+                return false;
+            }
+
+            if (roomRequest.GameMode is GameMode.ClassicMatch)
+            {
+                if (roomRequest.RoomCapacity > 5)
+                {
+                    logger.LogWarning("Room capacity can't be more than 5");
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (roomRequest.RoomCapacity > 2)
+            {
+                logger.LogWarning("Room capacity in {gameMode} game mode should be 2", roomRequest.GameMode);
+                return false;
+            }
+
+            return true;
         }
     }
 }

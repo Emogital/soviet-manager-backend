@@ -1,10 +1,13 @@
-﻿namespace GameServer.Dtos
+﻿using GameServer.Services.Gameplay;
+
+namespace GameServer.Dtos
 {
     public class LobbySettingsDto
     {
-        public string RoomName { get; set; } = string.Empty;
-        public string PlayerName { get; set; } = string.Empty;
-        public string PlayerNick { get; set; } = string.Empty;
-        public int PlayerRating { get; set; } = 1000;
+        public string RoomName { get; init; } = string.Empty;
+        public string PlayerName { get; init; } = string.Empty;
+        public string PlayerNick { get; init; } = string.Empty;
+        public int PlayerRating { get; init; } = 1000;
+        public RoomTheme Theme { get; init; }
     }
 }
