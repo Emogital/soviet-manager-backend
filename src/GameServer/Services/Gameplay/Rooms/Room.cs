@@ -19,9 +19,10 @@ namespace GameServer.Services.Gameplay.Rooms
         public readonly RoomTheme Theme = roomRequest.LobbySettings.Theme;
 
         public RoomStatus Status { get; private set; } = RoomStatus.Awaiting;
-        public Match? Match { get; private set; }
 
         public RoomData Data => new RoomData(this);
+
+        private Match? match;
 
         public event Action<Room>? StatusChanged;
 
@@ -90,17 +91,16 @@ namespace GameServer.Services.Gameplay.Rooms
                 }
             }
 
-            if (matchService.TryCreateMatch(this, out var match) == false)
+            if (matchService.TryCreateMatch(this, out match) == false)
             {
                 return false;
             }
 
-            Match = match;
             Status = RoomStatus.Playing;
 
             foreach (var player in Players)
             {
-                var matchData = Match.GetData(player.UserId);
+                var matchData = match?.GetData(player.UserId);
                 hubContext.Clients.User(player.UserId).SendAsync("MatchStarted", matchData);
             }
 
@@ -123,13 +123,13 @@ namespace GameServer.Services.Gameplay.Rooms
                 return false;
             }
 
-            if (Match is null)
+            if (match is null)
             {
                 logger.LogWarning("Match instance is null in room {RoomName}", Name);
                 return false;
             }
 
-            if (Match.TryRegisterPlayerAction(playerAction) == false)
+            if (match.TryRegisterPlayerAction(playerAction) == false)
             {
                 logger.LogWarning("Registration of action from player with id {PlayerId} is rejected in room {RoomName}", player.Id, Name);
                 return false;
@@ -178,12 +178,47 @@ namespace GameServer.Services.Gameplay.Rooms
                 RemovePlayer(player);
             }
 
-            hubContext.Clients.Group(Name).SendAsync("RoomUpdated", Data);
-
             if (IsRoomEmpty())
             {
                 Status = RoomStatus.Removing;
                 StatusChanged?.Invoke(this);
+                return;
+            }
+
+            if (Status == RoomStatus.Awaiting)
+            {
+                hubContext.Clients.Group(Name).SendAsync("RoomUpdated", Data);
+            }
+
+            if (Status != RoomStatus.Playing)
+            {
+                return;
+            }
+
+            hubContext.Clients.Group(Name).SendAsync("PlayerStatusChanged", player.GetData());
+
+            if (match == null)
+            {
+                logger.LogError("Match instance is null in room {RoomName} while match playing", Name);
+                return;
+            }
+
+            if (player.Status != PlayerStatus.Disconnected || player.Id != match.MasterId)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Players.Length; i++)
+            {
+                if (Players[i].Id == match.MasterId || Players[i].Status != PlayerStatus.Connected)
+                {
+                    continue;
+                }
+
+                match.MasterId = Players[i].Id;
+                logger.LogInformation("New master player with id {MasterId} appointed in room {RoomName}", match.MasterId, Name);
+                hubContext.Clients.Group(Name).SendAsync("MasterPlayerChanged", match.MasterId);
+                return;
             }
         }
 
@@ -191,7 +226,7 @@ namespace GameServer.Services.Gameplay.Rooms
         {
             player.StatusChanged -= OnPlayerStatusChanged;
             hubContext.Groups.RemoveFromGroupAsync(player.ConnectionId, Name);
-            logger.LogInformation("Removed Player {PlayerName}", player.Name);
+            logger.LogInformation("Removed player {PlayerName}", player.Name);
         }
 
         public void Dispose()
@@ -207,7 +242,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 Players[playerId] = null;
             }
 
-            Match?.Cleanup();
+            match?.Cleanup();
 
             GC.SuppressFinalize(this);
         }

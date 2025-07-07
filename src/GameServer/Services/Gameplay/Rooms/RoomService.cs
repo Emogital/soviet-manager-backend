@@ -55,8 +55,8 @@ namespace GameServer.Services.Gameplay.Rooms
 
                 connectionToRoom[connectionId] = roomName;
                 player.ConnectionId = connectionId;
-                player.ChangeStatus(PlayerStatus.Connected);
                 hubContext.Groups.AddToGroupAsync(connectionId, roomName);
+                player.ChangeStatus(PlayerStatus.Connected);
                 logger.LogInformation("Player {PlayerName} connected to room {RoomName}", player.Name, roomName);
                 return true;
             }

@@ -25,7 +25,6 @@ namespace GameServer.Hubs
 
             if (roomService.TryConnectToRoom(roomName, userId, Context.ConnectionId, out var room) && room != null)
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
                 return room.Data;
             }
 

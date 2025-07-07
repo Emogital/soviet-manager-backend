@@ -7,11 +7,12 @@ namespace GameServer.Services.Gameplay.Matches
     {
         public readonly GameMode GameMode = gameMode;
         public readonly RoomTheme Theme = theme;
-        public readonly int MasterId = 0;
         public readonly int[] ChancesOrder = ShuffleEventCards();
         public readonly int[] PenaltiesOrder = ShuffleEventCards();
         public readonly IMatchPlayer[] PlayersOrder = ShufflePlayers(players);
         public readonly List<PlayerActionData> PerformedActions = new();
+
+        public int MasterId { get; set; } = 0;
 
         public MatchData GetData(string targetUserId)
         {
