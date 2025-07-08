@@ -1,4 +1,4 @@
-﻿using GameServer.Dtos;
+using GameServer.Dtos;
 using GameServer.Hubs;
 using GameServer.Services.Gameplay.Matches;
 using GameServer.Services.Gameplay.Matches.Actions;
@@ -23,6 +23,7 @@ namespace GameServer.Services.Gameplay.Rooms
         public RoomData Data => new RoomData(this);
 
         private Match? match;
+        private RoomTimerProcess? timerProcess;
 
         public event Action<Room>? StatusChanged;
 
@@ -185,6 +186,12 @@ namespace GameServer.Services.Gameplay.Rooms
                 return;
             }
 
+            if (player.Status == PlayerStatus.Connected && timerProcess == null)
+            {
+                timerProcess = new RoomTimerProcess(hubContext, Name, logger);
+                timerProcess.StartProcess();
+            }
+
             if (Status == RoomStatus.Awaiting)
             {
                 hubContext.Clients.Group(Name).SendAsync("RoomUpdated", Data);
@@ -243,6 +250,9 @@ namespace GameServer.Services.Gameplay.Rooms
             }
 
             match?.Cleanup();
+
+            timerProcess?.Dispose();
+            timerProcess = null;
 
             GC.SuppressFinalize(this);
         }
