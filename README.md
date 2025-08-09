@@ -33,6 +33,7 @@ Welcome to the Soviet Manager Backend repository. This project is the server-sid
   - [Code Style Convention](#code-style-convention)
   - [Branch Naming Convention](#branch-naming-convention)
 - [Docker Support](#docker-support)
+  - [Docker Compose](#docker-compose)
 - [Contribution Guidelines](#contribution-guidelines)
 - [License](#license)
 
@@ -48,19 +49,12 @@ To set up the project locally, follow these steps:
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/your-username/soviet-manager-backend.git
+    git clone https://github.com/emogital/soviet-manager-backend.git
     cd soviet-manager-backend
     ```
 
-2. **Open the solution in Visual Studio**:
-    - Open `SovietManagerBackend.sln` in Visual Studio.
-
-3. **Build the solution**:
-    - Build the solution to restore the dependencies and compile the code.
-
-4. **Run the project**:
-    - Set `GameServer` as the startup project.
-    - Run the project using Visual Studio.
+2. **Environment configuration and application run**:
+    - Create and configure .env file, run docker compose (see [Docker Support](#docker-support)).
 
 ## Development Guidelines
 
@@ -74,17 +68,9 @@ Follow the branch naming conventions specified in [BranchNamingConvention.md](do
 
 ## Docker Support
 
-The project includes a Dockerfile for containerization. To build and run the Docker container, use the following commands:
+### Docker Compose
 
-1. **Build the Docker image**:
-    ```bash
-    docker build -t soviet-manager-backend .
-    ```
-
-2. **Run the Docker container**:
-    ```bash
-    docker run -p 8080:80 soviet-manager-backend
-    ```
+Instructions for building, running, and managing all backend services with Docker Compose are provided in [DockerCompose.md](docs/DockerCompose.md).
 
 ## License
 
@@ -109,4 +95,3 @@ The project includes a Dockerfile for containerization. To build and run the Doc
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
-    

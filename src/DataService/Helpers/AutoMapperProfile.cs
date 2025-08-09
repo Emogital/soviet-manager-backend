@@ -8,7 +8,7 @@ namespace DataService.Helpers
     {
         public AutoMapperProfile()
         {
-            CreateMap<LobbySettings, LobbySettingsDto>().ReverseMap();
+            CreateMap<LobbySettingsData, LobbySettingsDto>().ReverseMap();
         }
     }
 }

@@ -4,8 +4,8 @@ namespace DataService.Repositories
 {
     public interface ILobbySettingsRepository
     {
-        Task<LobbySettings> GetLobbySettingsAsync(string userId);
-        Task<LobbySettings> CreateLobbySettingsAsync(LobbySettings lobbySettings);
-        Task<LobbySettings> UpdateLobbySettingsAsync(LobbySettings lobbySettings);
+        Task<LobbySettingsData> GetLobbySettingsAsync(string userId);
+        Task<LobbySettingsData> CreateLobbySettingsAsync(LobbySettingsData lobbySettings);
+        Task<LobbySettingsData> UpdateLobbySettingsAsync(LobbySettingsData lobbySettings);
     }
 }

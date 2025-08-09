@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using DataService.Services;
-using DataService.Data;
-using DataService.Repositories;
-using Microsoft.EntityFrameworkCore;
+using GameServer.Hubs;
+using GameServer.Services.Core.SignalR;
+using GameServer.Services.Gameplay.Rooms;
+using GameServer.Services.Gameplay.Matches;
+using GameServer.Services.Gameplay.Players;
 
-namespace DataService
+namespace GameServer
 {
     public class Startup(IConfiguration configuration)
     {
@@ -16,12 +18,17 @@ namespace DataService
         {
             services.AddControllers();
 
-            services.AddDbContext<DataContext>(options => options.UseInMemoryDatabase("InMemoryDb"));
+            services.AddSingleton<IMatchService, MatchService>();
+            services.AddSingleton<IPlayerHeartbeatTracker, PlayerHeartbeatTracker>();
+            services.AddSingleton<IRoomService, RoomService>();
+            services.AddSingleton<IUserIdProvider, UserIdProvider>();
 
-            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-
-            services.AddScoped<ILobbySettingsService, LobbySettingsService>();
-            services.AddScoped<ILobbySettingsRepository, LobbySettingsRepository>();
+            services.AddSignalR(options =>
+                    {
+                        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                        options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+                    })
+                    .AddMessagePackProtocol();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>
@@ -36,7 +43,8 @@ namespace DataService
                             ValidAudience = Configuration["JWT_AUDIENCE"],
                             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT_SECRET_KEY"]!))
                         };
-                    });
+                    })
+                    .AddCookie("Cookie");
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -55,6 +63,7 @@ namespace DataService
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<MatchHub>("hubs/match");
                 endpoints.MapControllers();
             });
         }
