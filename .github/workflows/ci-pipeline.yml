@@ -26,7 +26,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@0d4c9c5ea76930a67a71a1309b3bbc75b6064a60 # v3
+        uses: docker/login-action@9780b0c442fbb1117ed29fde9c448a301f075865 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -76,7 +76,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@0d4c9c5ea76930a67a71a1309b3bbc75b6064a60 # v3
+        uses: docker/login-action@9780b0c442fbb1117ed29fde9c448a301f075865 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
