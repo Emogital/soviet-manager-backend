@@ -1,0 +1,46 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (e.g., latest or a SHA). Defaults to latest.'
+        required: false
+        default: 'latest'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+
+            TARGET_DIR="/opt/games/soviet-manager"
+            cd "$TARGET_DIR" || { echo "Directory not found: $TARGET_DIR"; exit 1; }
+
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            export IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+
+            DC="docker compose"
+
+            echo "Stopping stack (expect short downtime)..."
+            $DC down || true
+
+            echo "Pulling images with tag: $IMAGE_TAG..."
+            $DC pull
+
+            echo "Starting stack..."
+            $DC up -d --remove-orphans
+
+            docker image prune -f || true
+
+            echo "Deployment complete. Current status:"
+            $DC ps --all
