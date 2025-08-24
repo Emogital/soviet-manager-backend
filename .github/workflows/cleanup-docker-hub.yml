@@ -1,0 +1,81 @@
+name: Cleanup Docker Hub Images
+
+on:
+  workflow_dispatch:
+
+env:
+  DOCKER_REPO_PREFIX: emogital
+  REPOS: "soviet-manager-auth soviet-manager-data soviet-manager-game"
+  KEEP_SHA_COUNT: 3
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Cleanup old SHA tags
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d "{\"username\": \"$DOCKERHUB_USERNAME\", \"password\": \"$DOCKERHUB_TOKEN\"}" https://hub.docker.com/v2/users/login/ | jq -r .token)
+          if [ -z "$TOKEN" ]; then
+            echo "Failed to get token."
+            exit 1
+          fi
+
+          for REPO in $REPOS; do
+            echo "Cleaning repo: $DOCKER_REPO_PREFIX/$REPO"
+
+            PAGE=1
+            ALL_TAGS=()
+            while true; do
+              RESPONSE=$(curl -s -H "Authorization: JWT $TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_REPO_PREFIX/$REPO/tags/?page_size=100&page=$PAGE")
+              TAGS=$(echo "$RESPONSE" | jq -r '.results[].name')
+              if [ -z "$TAGS" ]; then
+                break
+              fi
+              ALL_TAGS+=($TAGS)
+              NEXT=$(echo "$RESPONSE" | jq -r '.next')
+              if [ "$NEXT" == "null" ]; then
+                break
+              fi
+              PAGE=$((PAGE + 1))
+            done
+
+            SHA_TAGS=()
+            for TAG in "${ALL_TAGS[@]}"; do
+              if [[ $TAG =~ ^[0-9a-f]{12}$ ]]; then
+                SHA_TAGS+=("$TAG")
+              fi
+            done
+
+            if [ ${#SHA_TAGS[@]} -le $KEEP_SHA_COUNT ]; then
+              echo "No SHA tags to delete in $REPO (total: ${#SHA_TAGS[@]})"
+              continue
+            fi
+
+            declare -A TAG_DATES
+            for TAG in "${SHA_TAGS[@]}"; do
+              LAST_PUSHED=$(curl -s -H "Authorization: JWT $TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_REPO_PREFIX/$REPO/tags/$TAG/" | jq -r '.last_updated')
+              TAG_DATES[$TAG]=$LAST_PUSHED
+            done
+
+            SORTED_SHA=$(for TAG in "${SHA_TAGS[@]}"; do echo "$TAG ${TAG_DATES[$TAG]}"; done | sort -k2 -r | awk '{print $1}')
+
+            KEEP=0
+            for TAG in $SORTED_SHA; do
+              if [ $KEEP -lt $KEEP_SHA_COUNT ]; then
+                echo "Keeping SHA tag: $TAG in $REPO"
+                KEEP=$((KEEP + 1))
+              else
+                echo "Deleting SHA tag: $TAG in $REPO"
+                curl -s -X DELETE -H "Authorization: JWT $TOKEN" "https://hub.docker.com/v2/repositories/$DOCKER_REPO_PREFIX/$REPO/tags/$TAG/"
+              fi
+            done
+          done
