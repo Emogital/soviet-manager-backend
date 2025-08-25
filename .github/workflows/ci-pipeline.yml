@@ -66,15 +66,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract version from csproj
-        id: extract_version
-        run: |
-          VERSION=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' src/AuthService/AuthService.csproj)
-          if [ -z "$VERSION" ]; then
-            VERSION="1.0.0"
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -87,7 +78,7 @@ jobs:
           context: ./src/AuthService
           file: ./src/AuthService/Dockerfile
           push: true
-          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-auth:${{ steps.extract_version.outputs.version }}
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-auth:latest
 
       - name: "Build & push DataService"
         uses: docker/build-push-action@v6
@@ -95,7 +86,7 @@ jobs:
           context: ./src/DataService
           file: ./src/DataService/Dockerfile
           push: true
-          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-data:${{ steps.extract_version.outputs.version }}
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-data:latest
 
       - name: "Build & push GameServer"
         uses: docker/build-push-action@v6
@@ -103,8 +94,8 @@ jobs:
           context: ./src/GameServer
           file: ./src/GameServer/Dockerfile
           push: true
-          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-game:${{ steps.extract_version.outputs.version }}
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-game:latest
 
       - name: Show pushed tag
         run: |
-          echo "Pushed images with tag: ${{ steps.extract_version.outputs.version }}"
+          echo "Pushed images with tag: latest"
