@@ -1,81 +1,104 @@
-# Docker Compose Setup for Soviet Manager Backend
+# Docker Compose Setup
 
 ## Overview
 
-This document explains how to build and run the Soviet Manager Backend project using Docker Compose.
+Two deployment configurations:
+- `deploy/local/` - Development (builds from source)
+- `deploy/remote/` - Production (pre-built images)
 
-## Prerequisites
+## Local Development
 
-- Docker installed
-- Docker Compose installed (comes with Docker Desktop)
+**Prerequisites:** Docker, Docker Compose
 
-## Services
-
-- **Nginx** — Public Port: 80
-- **DataService** — Internal Port: 8082
-- **AuthService** — Internal Port: 8086
-- **GameServer** — Internal Port: 8084
-
-All internal services are hidden behind Nginx and not directly accessible from outside.
-
-## Environment Variables
-
-Required environment variables:
-
-- `JWT_SECRET_KEY`
-- `JWT_ISSUER`
-- `JWT_AUDIENCE`
-
-Set them in the `.env` file located at the project root (copy from `.env.example` if needed).
-
-## Usage
-
-### Starting Services
-
+**Setup:**
 ```bash
+# Configure environment
+cp .env.example .env
+# Edit .env with JWT settings
+
+# Start services
+cd deploy/local
 docker-compose up -d
+
+# Test
+curl http://localhost/health
 ```
 
-- Builds images if not already built.
-- Starts containers in detached mode.
+**Services:**
+- AuthService: Build from `src/AuthService`, internal port 8086
+- DataService: Build from `src/DataService`, internal port 8082  
+- GameServer: Build from `src/GameServer`, internal port 8084
+- Nginx: Proxy on port 80
 
-### Stopping Services
-
+**Commands:**
 ```bash
+# View logs
+docker-compose logs -f [service]
+
+# Rebuild after code changes
+docker-compose up -d --build [service]
+
+# Stop
 docker-compose down
 ```
 
-- Stops and removes containers, network, etc.
+## Production Deployment
 
-### Viewing Logs
+**Prerequisites:** Docker, access to `emogital/*` images
 
-All services:
-
+**Setup:**
 ```bash
-docker-compose logs
+# Environment variables
+JWT_SECRET_KEY=production-secret
+JWT_ISSUER=SovietManagerProd  
+JWT_AUDIENCE=SovietManagerUsers
+IMAGE_TAG=latest
+
+# Create network
+docker network create soviet-manager-internal
+
+# Deploy
+cd deploy/remote
+docker-compose up -d
 ```
 
-Specific service:
+**Services:**
+- Uses pre-built images: `emogital/soviet-manager-{auth,data,game}`
+- All services on internal port 80
+- Health checks enabled
+- Auto-restart policies
+- External network isolation
 
+**Commands:**
 ```bash
-docker-compose logs dataservice
-docker-compose logs authservice
-docker-compose logs gameserver
-docker-compose logs nginx
+# Update deployment
+docker-compose pull && docker-compose up -d
+
+# Health check
+curl http://server/nginx-health
+
+# Rollback
+IMAGE_TAG=previous-version docker-compose up -d
 ```
 
-## Health Check
+## Environment Variables
 
-The Nginx server responds on `/health` route:
+Required for both environments:
+- `JWT_SECRET_KEY` - JWT signing key
+- `JWT_ISSUER` - Token issuer
+- `JWT_AUDIENCE` - Token audience
 
-```bash
-curl http://your-server-ip-or-domain/health
-```
-- Response should be `OK`.
+Production only:
+- `IMAGE_TAG` - Docker image version (default: latest)
+
+## Networks
+
+**Local:** `backend-network` (bridge)
+**Production:** `soviet-manager-internal` (external)
 
 ## Troubleshooting
 
-- **Ports already in use**: Free the ports or update port mappings in `docker-compose.yml`.
-- **Environment variables issues**: Ensure `.env` file exists and is correctly filled.
-- **Service connection problems**: All services must be on the `backend-network` (internal-only network).
-- **Nginx not routing properly**: Check `nginx.conf` volume mount and service names.
+**Port conflicts:** Change port mapping in docker-compose.yml
+**Build failures:** Check Docker daemon, disk space
+**Health check failures:** Review service logs
+**Image pull issues:** Verify registry access, network connectivity
