@@ -32,9 +32,7 @@ Welcome to the Soviet Manager Backend repository. This project is the server-sid
 - [Development Guidelines](#development-guidelines)
   - [Code Style Convention](#code-style-convention)
   - [Branch Naming Convention](#branch-naming-convention)
-- [Docker Support](#docker-support)
-  - [Docker Compose](#docker-compose)
-- [Contribution Guidelines](#contribution-guidelines)
+- [Deployment](#deployment)
 - [License](#license)
 
 ## Project Structure
@@ -45,32 +43,27 @@ We appreciate your understanding and patience as we work towards building a robu
 
 ## Setup Instructions
 
-To set up the project locally, follow these steps:
+You can run the project in two main ways:
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/emogital/soviet-manager-backend.git
-    cd soviet-manager-backend
-    ```
+- **Locally (development):** Build and run everything from source code using Docker Compose. Fast and easy for making code changes.
+- **On the server (production-like):** Use prebuilt images from Docker Hub (automatically built by the CI/CD pipeline). Just copy `deploy/remote` folder to your server.
 
-2. **Environment configuration and application run**:
-    - Create and configure .env file, run docker compose (see [Docker Support](#docker-support)).
+For step-by-step commands, see [Deployment Guide](docs/Deployment.md).
+
+## Github Actions Workflows
+
+- **CI Pipeline:** On every PR/merge to `dev`, Docker images are built and pushed to Docker Hub (`emogital` org) with each commit/tag.
+- **CD Pipeline:** Deploy is done via the Github Action (manual trigger via Actions), which pulls the latest images and runs the app on your server, all containers managed via Docker Compose.
+- **Cleanup:** Old Docker images are cleaned up (keeping latest 3) by a separate workflow (also manual trigger).
 
 ## Development Guidelines
 
-### Code Style Convention
+- See [Code Style Convention](docs/CodeStyleConvention.md) for style rules.
+- See [Branch Naming Convention](docs/BranchNamingConvention.md) for branching strategy.
 
-To maintain consistency across the codebase, adhere to the code style guidelines outlined in [CodeStyleConvention.md](docs/CodeStyleConvention.md).
+## Deployment
 
-### Branch Naming Convention
-
-Follow the branch naming conventions specified in [BranchNamingConvention.md](docs/BranchNamingConvention.md) for creating and managing branches.
-
-## Docker Support
-
-### Docker Compose
-
-Instructions for building, running, and managing all backend services with Docker Compose are provided in [DockerCompose.md](docs/DockerCompose.md).
+Instructions for building, running, and managing all backend services are provided in [Deployment Guide](docs/Deployment.md).
 
 ## License
 
