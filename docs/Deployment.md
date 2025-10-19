@@ -2,8 +2,8 @@
 
 ## Prerequisites
 - Docker & Docker Compose installed (see Docker docs)
-- For local development: `.env` file in project root with all required secrets (`JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`)
-- For server deployment: GitHub secrets configured (JWT_SECRET_KEY, JWT_ISSUER, JWT_AUDIENCE, SSH keys, Docker Hub credentials)
+- For local development: `.env` file in project root with all required secrets (`JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_API_KEY`)
+- For server deployment: GitHub secrets configured (JWT_SECRET_KEY, JWT_ISSUER, JWT_AUDIENCE, ADMIN_API_KEY, SSH keys, Docker Hub credentials)
 
 ## Compose Setups
 
@@ -27,7 +27,7 @@ docker-compose down
 Log example:
 ```bash
 docker-compose logs
-docker-compose logs authservice-container  # Individual service
+docker-compose logs authservice  # Individual service
 ```
 
 Check if services are running:

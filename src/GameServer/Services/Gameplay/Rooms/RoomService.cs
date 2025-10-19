@@ -114,6 +114,11 @@ namespace GameServer.Services.Gameplay.Rooms
             logger.LogError("Room {RoomName} not contains player with connection id", roomName);
         }
 
+        public IReadOnlyCollection<Room> GetAllRooms()
+        {
+            return rooms.Values.ToList().AsReadOnly();
+        }
+
         private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
             if (ValidateRoomRequest(roomRequest) == false)

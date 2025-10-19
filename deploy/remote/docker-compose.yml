@@ -41,6 +41,7 @@ services:
       - JWT_SECRET_KEY
       - JWT_ISSUER
       - JWT_AUDIENCE
+      - ADMIN_API_KEY
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost/health" ]
       interval: 30s
