@@ -8,5 +8,6 @@ namespace GameServer.Services.Gameplay.Rooms
         bool TryConnectToRoom(string roomName, string userId, string connectionId, out Room? room);
         bool TryGetConnectedRoom(string connectionId, out Room? room);
         Task DisconnectPlayer(string connectionId);
+        IReadOnlyCollection<Room> GetAllRooms();
     }
 }

@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using GameServer.Hubs;
+using GameServer.Middleware;
+using GameServer.Services.Core.SignalR;
+using GameServer.Services.Gameplay.Matches;
+using GameServer.Services.Gameplay.Players;
+using GameServer.Services.Gameplay.Rooms;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using GameServer.Hubs;
-using GameServer.Services.Core.SignalR;
-using GameServer.Services.Gameplay.Rooms;
-using GameServer.Services.Gameplay.Matches;
-using GameServer.Services.Gameplay.Players;
 
 namespace GameServer
 {
@@ -55,9 +56,8 @@ namespace GameServer
             }
 
             app.UseHttpsRedirection();
-
+            app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
             app.UseRouting();
-
             app.UseAuthentication();
             app.UseAuthorization();
 
