@@ -1,4 +1,5 @@
 ﻿using GameServer.Dtos;
+using GameServer.Services.Gameplay;
 using GameServer.Services.Gameplay.Rooms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,21 @@ namespace GameServer.Controllers
                     return NoContent();
                 }
 
-                if (roomService.TryCreateOrJoinRoom(userId, roomRequest) == false)
+                var result = roomService.TryCreateOrJoinRoom(userId, roomRequest);
+                if (result.IsSuccess)
                 {
-                    return Conflict();
+                    return Ok();
                 }
 
-                return Ok();
+                var problem = new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Room request failed",
+                    Detail = result.ErrorCode.ToString()
+                };
+                problem.Extensions["errorCode"] = (int)result.ErrorCode;
+
+                return BadRequest(problem);
             });
         }
     }
