@@ -16,12 +16,6 @@
 [![Newtonsoft.Json](https://img.shields.io/badge/Newtonsoft.Json-13.0.3-yellowgreen)](https://www.newtonsoft.com/json)
 [![JsonWebTokens](https://img.shields.io/badge/JsonWebTokens-7.6.2-yellow)](https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet/blob/master/docs/json-web-tokens.md)
 
-## Testing
-[![InMemory](https://img.shields.io/badge/EFCore.InMemory-8.0.6-lightblue)](https://docs.microsoft.com/en-us/ef/core/providers/in-memory/?tabs=dotnet-core-cli)
-
-## Deployment
-[![Docker](https://img.shields.io/badge/Docker-Enabled-blue)](https://www.docker.com/)
-
 
 Welcome to the Soviet Manager Backend repository. This project is the server-side application for the Soviet Manager game, designed to handle game logic, player interactions, and data management.
 
@@ -60,6 +54,25 @@ For step-by-step commands, see [Deployment Guide](docs/Deployment.md).
 
 - See [Code Style Convention](docs/CodeStyleConvention.md) for style rules.
 - See [Branch Naming Convention](docs/BranchNamingConvention.md) for branching strategy.
+
+## Admin API
+
+The GameServer includes an Admin API for monitoring server status and managing operations. This API is secured with API key authentication and provides endpoints to check active rooms and players.
+
+### Quick Start
+
+1. Set the `ADMIN_API_KEY` environment variable (see deployment guide)
+2. Make requests to `/api/admin/server-status` with the `X-Admin-Key` header
+
+### Example Usage
+
+```bash
+# Check server status
+curl -H "X-Admin-Key: your-api-key" \
+     http://localhost/api/admin/server-status
+```
+
+For detailed documentation, see [Admin API Guide](docs/AdminAPI.md).
 
 ## Deployment
 

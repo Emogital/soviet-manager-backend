@@ -26,6 +26,7 @@ jobs:
             export JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}"
             export JWT_ISSUER="${{ secrets.JWT_ISSUER }}"
             export JWT_AUDIENCE="${{ secrets.JWT_AUDIENCE }}"
+            export ADMIN_API_KEY="${{ secrets.ADMIN_API_KEY }}"
             $DC down || true
             $DC pull
             $DC up -d --remove-orphans

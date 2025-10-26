@@ -2,8 +2,8 @@
 
 ## Prerequisites
 - Docker & Docker Compose installed (see Docker docs)
-- For local development: `.env` file in project root with all required secrets (`JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`)
-- For server deployment: GitHub secrets configured (JWT_SECRET_KEY, JWT_ISSUER, JWT_AUDIENCE, SSH keys, Docker Hub credentials)
+- For local development: `.env` file in project root with all required secrets (`JWT_SECRET_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_API_KEY`)
+- For server deployment: GitHub secrets configured (JWT_SECRET_KEY, JWT_ISSUER, JWT_AUDIENCE, ADMIN_API_KEY, SSH keys, Docker Hub credentials)
 
 ## Compose Setups
 
@@ -27,7 +27,7 @@ docker-compose down
 Log example:
 ```bash
 docker-compose logs
-docker-compose logs authservice-container  # Individual service
+docker-compose logs authservice  # Individual service
 ```
 
 Check if services are running:
@@ -71,10 +71,29 @@ Check if services are running:
 docker compose ps
 ```
 
+## Configuration File Updates
+
+**Important:** Application code is deployed automatically via Docker images, but configuration files require manual updates on the server.
+
+### Files Requiring Manual Updates
+
+When these files change in the repository, update them on the server:
+- `docker-compose.yml` - Service configuration and environment variables
+- `nginx.conf` - Routing and proxy configuration
+
+### Update Process
+
+1. Copy the updated file content from `deploy/remote/` to the server
+2. Restart services to apply changes:
+```bash
+cd /opt/games/soviet-manager
+docker compose down
+docker compose up -d
+```
+
 **Note:**
-- Do not edit Dockerfiles or compose files in server deployment; they are for reference only.
-- Production deployment assumes images are published by the CI pipeline. See README for CI/CD/cleanup process.
+- Production deployment uses images published by the CI pipeline. See README for CI/CD process.
 - Secrets are managed via GitHub repository settings, not local files on the server.
-- Healthchecks are defined in the remote compose file but may not be fully implemented in the services yet.
+- Healthchecks are defined in the compose file but may not be fully implemented yet.
 
 For anything else (branching, code style rules), see referenced documents in the [README](../README.md).
