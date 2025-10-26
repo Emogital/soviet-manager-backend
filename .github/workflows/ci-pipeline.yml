@@ -1,0 +1,101 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+env:
+  DOCKER_REPO_PREFIX: emogital
+
+jobs:
+  build-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set short SHA tag
+        id: set_tag
+        run: |
+          TAG="${GITHUB_SHA::12}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: "Build & push AuthService"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/AuthService
+          file: ./src/AuthService/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-auth:${{ steps.set_tag.outputs.tag }}
+
+      - name: "Build & push DataService"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/DataService
+          file: ./src/DataService/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-data:${{ steps.set_tag.outputs.tag }}
+
+      - name: "Build & push GameServer"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/GameServer
+          file: ./src/GameServer/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-game:${{ steps.set_tag.outputs.tag }}
+
+      - name: Show pushed tag
+        run: |
+          echo "Pushed images with tag: ${{ steps.set_tag.outputs.tag }}"
+
+  build-push:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: "Build & push AuthService"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/AuthService
+          file: ./src/AuthService/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-auth:latest
+
+      - name: "Build & push DataService"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/DataService
+          file: ./src/DataService/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-data:latest
+
+      - name: "Build & push GameServer"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/GameServer
+          file: ./src/GameServer/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_REPO_PREFIX }}/soviet-manager-game:latest
+
+      - name: Show pushed tag
+        run: |
+          echo "Pushed images with tag: latest"

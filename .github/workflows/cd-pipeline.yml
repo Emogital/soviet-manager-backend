@@ -1,0 +1,36 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ssh_key
+          chmod 600 ssh_key
+          ssh -i ssh_key -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} -p ${{ secrets.SSH_PORT }} '
+            set -euo pipefail
+            TARGET_DIR="/opt/games/soviet-manager"
+            cd "$TARGET_DIR"
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            DC="docker compose"
+            export JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}"
+            export JWT_ISSUER="${{ secrets.JWT_ISSUER }}"
+            export JWT_AUDIENCE="${{ secrets.JWT_AUDIENCE }}"
+            export ADMIN_API_KEY="${{ secrets.ADMIN_API_KEY }}"
+            $DC down || true
+            $DC pull
+            $DC up -d --remove-orphans
+            docker image prune -f || true
+            $DC ps --all
+          '
+          rm ssh_key
