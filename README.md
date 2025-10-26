@@ -74,6 +74,10 @@ curl -H "X-Admin-Key: your-api-key" \
 
 For detailed documentation, see [Admin API Guide](docs/AdminAPI.md).
 
+## GameServer Connection API
+
+Player-facing connection endpoint documentation is available here: [GameServer API (Connection)](docs/GameServerAPI.md).
+
 ## Deployment
 
 Instructions for building, running, and managing all backend services are provided in [Deployment Guide](docs/Deployment.md).

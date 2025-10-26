@@ -15,18 +15,18 @@ namespace GameServer.Services.Gameplay.Rooms
         private readonly ConcurrentDictionary<string, Room> rooms = new();
         private readonly ConcurrentDictionary<string, string> connectionToRoom = new();
 
-        public bool TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest)
+        public RoomRequestResult TryCreateOrJoinRoom(string userId, RoomRequestDto roomRequest)
         {
             if (string.IsNullOrEmpty(roomRequest.LobbySettings.RoomName))
             {
                 logger.LogInformation("Failed to join room, room name is empty");
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.RoomNameMissing);
             }
 
             if (string.IsNullOrEmpty(roomRequest.LobbySettings.PlayerName))
             {
                 logger.LogInformation("Player name is empty, failed to join room {RoomName}", roomRequest.LobbySettings.RoomName);
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.PlayerNameMissing);
             }
 
             if (roomRequest.GameMode is GameMode.None)
@@ -119,11 +119,16 @@ namespace GameServer.Services.Gameplay.Rooms
             return rooms.Values.ToList().AsReadOnly();
         }
 
-        private bool TryCreateRoom(string userId, RoomRequestDto roomRequest)
+        private RoomRequestResult TryCreateRoom(string userId, RoomRequestDto roomRequest)
         {
-            if (ValidateRoomRequest(roomRequest) == false)
+            if (ValidateGameMode(roomRequest) == false)
             {
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.GameModeNotAllowed);
+            }
+            
+            if (ValidateRoomCapacity(roomRequest) == false)
+            {
+                return RoomRequestResult.Fail(RoomRequestErrorCode.InvalidRoomCapacity);
             }
 
             var roomName = roomRequest.LobbySettings.RoomName;
@@ -139,7 +144,7 @@ namespace GameServer.Services.Gameplay.Rooms
                 else
                 {
                     logger.LogInformation("Room {RoomName} exists already", existingRoom.Name);
-                    return false;
+                    return RoomRequestResult.Fail(RoomRequestErrorCode.RoomAlreadyExists);
                 }
             }
 
@@ -149,15 +154,15 @@ namespace GameServer.Services.Gameplay.Rooms
             if (rooms.TryAdd(roomName, room) && room.TryRegisterNewPlayer(userId, playerName))
             {
                 logger.LogInformation("Created new Room {RoomName} with game mode {GameMode}", roomName, roomRequest.GameMode);
-                return true;
+                return RoomRequestResult.Success();
             }
 
             logger.LogError("Failed to create new Room {RoomName} or register Player {PlayerName}", roomName, playerName);
             RemoveRoom(room);
-            return false;
+            return RoomRequestResult.Fail(RoomRequestErrorCode.RoomCreationOrPlayerRegistrationFailed);
         }
 
-        private bool TryJoinRoom(string userId, RoomRequestDto roomRequest)
+        private RoomRequestResult TryJoinRoom(string userId, RoomRequestDto roomRequest)
         {
             var roomName = roomRequest.LobbySettings.RoomName;
             var playerName = roomRequest.LobbySettings.PlayerName;
@@ -165,13 +170,13 @@ namespace GameServer.Services.Gameplay.Rooms
             if (rooms.TryGetValue(roomName, out var room) == false)
             {
                 logger.LogInformation("Room {RoomName} not exists", roomName);
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.RoomNotFound);
             }
 
             if (room.Status is not RoomStatus.Awaiting)
             {
                 logger.LogInformation("Failed to join room {RoomName}, due room status {RoomStatus}", roomName, room.Status);
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.RoomNotAwaiting);
             }
 
             foreach (var player in room.Players)
@@ -184,29 +189,29 @@ namespace GameServer.Services.Gameplay.Rooms
                 if (player.UserId == userId)
                 {
                     logger.LogInformation("Player {PlayerName} rejoined room {RoomName}", player.Name, roomName);
-                    return true;
+                    return RoomRequestResult.Success();
                 }
 
                 if (player.Name == playerName)
                 {
                     logger.LogInformation("Player {PlayerName} taked already in room {RoomName}", playerName, roomName);
-                    return false;
+                    return RoomRequestResult.Fail(RoomRequestErrorCode.PlayerNameAlreadyTaken);
                 }
             }
 
             if (room.IsAvailableToJoin() == false)
             {
                 logger.LogInformation("Room {RoomName} is full already, failed to join player {PlayerName}", roomName, playerName);
-                return false;
+                return RoomRequestResult.Fail(RoomRequestErrorCode.RoomIsFull);
             }
 
             if (room.TryRegisterNewPlayer(userId, playerName))
             {
-                return true;
+                return RoomRequestResult.Success();
             }
 
             logger.LogError("Failed to register Player {PlayerName} in Room {RoomName}", playerName, roomName);
-            return false;
+            return RoomRequestResult.Fail(RoomRequestErrorCode.PlayerRegistrationFailed);
         }
 
         private void RemoveRoom(Room room)
@@ -233,11 +238,6 @@ namespace GameServer.Services.Gameplay.Rooms
             {
                 RemoveRoom(room);
             }
-        }
-
-        private bool ValidateRoomRequest(RoomRequestDto roomRequest)
-        {
-            return ValidateGameMode(roomRequest) && ValidateRoomCapacity(roomRequest);
         }
 
         private bool ValidateGameMode(RoomRequestDto roomRequest)
